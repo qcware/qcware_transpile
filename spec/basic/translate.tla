@@ -9,7 +9,8 @@ x == [a |-> 1, b |-> {2, 3}]
 X_A == [name |-> "X_A", qubitIds |-> << 0 >> ]
 H_A == [name |-> "H_A", qubitIds |-> << 1 >> ]
 SWAP_A == [name |-> "SWAP_A", qubitIds |-> << 2, 3 >> ]
-GATES_A == {X_A,H_A,SWAP_A}
+UNTRANSLATABLE_A == [name |-> "UNTRANSLATABLE_A", qubitIds |-> << 0 >> ]
+GATES_A == {X_A,H_A,SWAP_A, UNTRANSLATABLE_A}
 
 X_B == [name |-> "X_B", qubitIds |-> << 4 >> ]
 H_B == [name |-> "H_B", qubitIds |-> << 5 >> ]
