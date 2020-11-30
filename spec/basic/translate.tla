@@ -112,10 +112,3 @@ TranslateInstruction(inst) ==
   
 
 ====
----- MODULE Circuit ----
-
-CONSTANTS
-
-TargetQC
-
-====
