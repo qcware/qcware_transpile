@@ -33,30 +33,31 @@ InstructionsForGate(gate, parameter_values, qubits) ==
   { << gate, parameter_mappings, bits >> : parameter_mappings \in [gate.parameters -> parameter_values], bits \in SeqOfLengthN(qubits, NumGateQubits(gate) ) }
 
 INSTRUCTIONS_A ==
-  { InstructionsForGate(gate, PARAMETER_VALUES_A, QUBITS_A) : gate \in GATES_A }
+  UNION { InstructionsForGate(gate, PARAMETER_VALUES_A, QUBITS_A) : gate \in GATES_A }
 
 INSTRUCTIONS_B ==
-  { InstructionsForGate(gate, PARAMETER_VALUES_B, QUBITS_B) : gate \in GATES_B }
+  UNION { InstructionsForGate(gate, PARAMETER_VALUES_B, QUBITS_B) : gate \in GATES_B }
 
 EMPTYFUNC == [x \in {} |-> {}]
 (* A gate translation maps a source gate to a sequence of gates.  This necessitates,
 for each destination gate, a translation of qubit_ids.
 
-The qubit map maps from B to A, which sounds unintuitive but works correctly.
+The qubit map maps from B to A, which sounds unintuitive but works correctly.  We
+use the qubit IDs on the B side to "pull" the values on the A side.
 
 Domain(qubitMap) = Range(gate.qubitIds)
 
 This definition should be made more generic of course *)
 TranslateGate == 
-  [ X_A |-> << [gate |-> X_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 4:>0] >>,
-    H_A |-> << [gate |-> H_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 5:>1] >>,
-    RZ_A |-> << [gate |-> RZ_B,
+  << X_A >> :> << [gate |-> X_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 4:>0] >> 
+  @@ << H_A >> :> << [gate |-> H_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 5:>1] >>
+  @@ << RZ_A >> :> << [gate |-> RZ_B,
                parameterMap |-> [theta_b |-> << "theta_a",
 	                                     CHOOSE x \in [PARAMETER_VALUES_A -> PARAMETER_VALUES_B]: TRUE >> ],
-	       qubitMap |-> 0:>0] >>,
-    SWAP_A |-> << [gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 6:>2 @@ 7:>3 ],
+	       qubitMap |-> 0:>0] >>
+  @@ << SWAP_A >> :> << [gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 6:>2 @@ 7:>3 ],
                 [gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 7:>2 @@ 6:>3 ],
-		[gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 6:>2 @@ 7:>3 ]>>]
+		[gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 6:>2 @@ 7:>3 ]>>
 
 TranslatableGates == DOMAIN TranslateGate
 
@@ -103,7 +104,7 @@ TranslateInstruction(inst) ==
   LET Gate_A == inst[1] IN
   LET Parameter_mappings_A == inst[2] IN
   LET Bits_A == inst[3] IN
-  LET Translation == TranslateGate[Gate_A.name] IN
+  LET Translation == TranslateGate[<< Gate_A >>] IN
   LET dom_B == DOMAIN Translation IN
   [ x \in dom_B |-> << Translation[x].gate,
                    TranslateParameters(Parameter_mappings_A, Translation[x].parameterMap),

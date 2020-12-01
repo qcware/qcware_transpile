@@ -1,12 +1,12 @@
 ------------------------------ MODULE circuits ------------------------------
 EXTENDS translate, Integers, TLC, Sequences
 
-CIRCUITS_A_MAX_LENGTH == 3
+CIRCUITS_A_MAX_LENGTH == 2
 \* learntla.com/tla/functions
-CIRCUITS_A == UNION {[1..m -> INSTRUCTIONS_A]: m \in 1..CIRCUITS_A_MAX_LENGTH}
+CIRCUITS_A == UNION { [1..m -> INSTRUCTIONS_A]: m \in 1..CIRCUITS_A_MAX_LENGTH }
 
 CircuitIsTranslatable(circuit) ==
-   LET circuitGates == {circuit[x][1] : x \in DOMAIN circuit} IN
+   LET circuitGates == {<< circuit[x][1] >> : x \in DOMAIN circuit} IN
    \A x \in circuitGates: x \in TranslatableGates
 
 
