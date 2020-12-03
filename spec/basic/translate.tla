@@ -1,5 +1,5 @@
 ---- MODULE translate ----
-EXTENDS Sequences, Integers, TLC
+EXTENDS Sequences, Integers, TLC, FiniteSets
 
 QUBITS_A == {0,1,2,3} \* Set of qubit identifiers for system A
 QUBITS_B == {4,5,6,7}
@@ -20,7 +20,9 @@ RZ_B == [name |-> "RZ_B", parameters |-> {"theta_b"}, qubitIds |-> << 0 >> ]
 GATES_B == {X_B,H_B, CX_B}
 PARAMETER_VALUES_B == {60, 70}
 
-SeqOfLengthN(S, n) == UNION {[(1..n) -> S]}
+TupleMembers(t) == {t[x]: x \in 1..Len(t)}
+SeqsOfLengthN(S, n) == UNION {[(1..n) -> S]}
+UniqSeqsOfLengthN(S, n) == {s \in SeqsOfLengthN(S, n): Cardinality(TupleMembers(s)) = n}
 
 NumGateQubits(gate) == Len(gate.qubitIds)
 
@@ -30,7 +32,7 @@ bits in the bits tuple is equal to the number of qubits
 usable by the gate.  We won't play with broadcasting etc here. *)
 
 InstructionsForGate(gate, parameter_values, qubits) ==
-  { << gate, parameter_mappings, bits >> : parameter_mappings \in [gate.parameters -> parameter_values], bits \in SeqOfLengthN(qubits, NumGateQubits(gate) ) }
+  { << gate, parameter_mappings, bits >> : parameter_mappings \in [gate.parameters -> parameter_values], bits \in UniqSeqsOfLengthN(qubits, NumGateQubits(gate) ) }
 
 INSTRUCTIONS_A ==
   UNION { InstructionsForGate(gate, PARAMETER_VALUES_A, QUBITS_A) : gate \in GATES_A }
