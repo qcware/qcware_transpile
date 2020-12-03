@@ -1,5 +1,6 @@
+
 ------------------------------ MODULE circuits ------------------------------
-EXTENDS translate, Integers, TLC, Sequences
+EXTENDS translate, Integers, TLC, Sequences, MatchInstructionSequences
 
 CIRCUITS_A_MAX_LENGTH == 2
 \* learntla.com/tla/functions
