@@ -37,9 +37,9 @@ ParameterMappings(circuit) ==
 
 \* whether one circuit matches another on everything except the actual bits
 \* bound to the inputs
-CircuitsMatch(circuit_A, circuit_B) ==
+CircuitStructuresMatch(circuit_A, circuit_B) ==
   /\ GateNames(circuit_A) = GateNames(circuit_B)
-  /\ ParameterMappings(circuit_A) = ParameterMappings(circuit_B)
+\*  /\ ParameterMappings(circuit_A) = ParameterMappings(circuit_B)
   /\ BitBindingSignature(circuit_A) = BitBindingSignature(circuit_B)
   
 TEST_A == << << [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> <<2, 3>>],
@@ -54,6 +54,15 @@ TEST_B == << << [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> <<2, 3>>],
          << [name |-> "X_A", parameters |-> {}, qubitIds |-> <<0>>],
             << >>,
             <<0>> >> >>
+
+\* Creates a one-instruction circuit from a gate, with an empty function for
+\* parameter mappings.  We may have to think about this.  By default, circuits
+\* match regardless of their parameter mappings, but we may have to think
+\* about this; there may be a case where a gate with a particular parameter
+\* mapping could be remapped to another gate (for example, Rx(pi) == CX?)
+CircuitFromGate(g) ==
+  << g, EMPTYFUNC, 1..Len(g.qubitIds) >>
+  
 =============================================================================
 \* Modification History
 \* Created Wed Dec 2 15:13:39 CST 2020 by vputz
