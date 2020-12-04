@@ -1,5 +1,16 @@
 ------------------------------ MODULE MatchInstructionSequences ------------------------------
-EXTENDS Sequences, Integers, Helpers, TLC
+EXTENDS Sequences, Integers, Helpers, TLC, Gates
+
+(* Some terminology:
+
+A gate defines a name and the domains of parameters and bit ids.
+A sequence of gates paired with bit bindings but with some or no parameter bindings is a pattern
+An instruction pairs a gate with parameter bindings and bit id bindings
+A sequence of instructions is a circuit
+A replacement is a circuit, but the parameter bindings, rather than to values,
+are to references in the source circuit
+ *)
+
 
 (* A Bit Binding Signature is the set of all gate bindings (within
 a sequence, this is the tuple << instruction_index, QubitId >> which are
@@ -32,11 +43,6 @@ GateNames(circuit) ==
 
 ParameterMappings(circuit) ==
   [ x \in 1..Len(circuit) |-> circuit[x][2] ]
-
-\* checks to see if f is a subfunction of g
-IsSubfunction(f, g) ==
-  /\ DOMAIN f \subseteq DOMAIN g
-  /\ \A x \in DOMAIN f: f[x] = g[x]
 
 ParameterMappingsMatch( mappingsA, mappingsB ) ==
   /\ DOMAIN mappingsA = DOMAIN mappingsB
@@ -73,12 +79,35 @@ CircuitFromGate(g) ==
   << g, EMPTYFUNC, 1..Len(g.qubitIds) >>
 
 
+TEST_PATTERN_A == << << SWAP_A, EMPTYFUNC, << 0,1 >> >>,
+                   << RZ_A, EMPTYFUNC, << 0 >> >> >>
+TEST_MATCH_A == << << SWAP_A, EMPTYFUNC, << 1,0 >> >>,
+                   << RZ_A, "theta_a" :> 2, << 0 >> >> >>
+TEST_REPLACEMENT_A == << << CX_B, EMPTYFUNC, << 0, 1 >> >>,
+                       << CX_B, EMPTYFUNC, << 1, 0 >> >>,
+                       << CX_B, EMPTYFUNC, << 0, 1 >> >>,
+		       << RZ_B, "theta_b" :> << 2, "theta_a" >>, << 0 >> >> >>
+
+RemapReplacementInstruction( ReplacementQubitMap, ReplacementParameterMap, instr ) ==
+  LET parameters == [ x \in DOMAIN instr[2] |-> ReplacementParameterMap[ instr[2][x][1] ][ instr[2][x][2] ] ]
+      newQubitIds == [ x \in 1..Len(instr[3]) |-> ReplacementQubitMap[ instr[3][x] ] ]
+  IN
+  << instr[1], parameters, newQubitIds >>
+
 \* Create a replacement for a circuit.  The circuit input is a sequence of
 \* instructions; the replacement is a circuit with bindings for its
 \* unbound parameters and its replacement qubit mapping.
 \* the qubit binding is achieved by matching forward bindings from the
 \* pattern to the circuit.
-ReplaceCircuitWith(pattern, replacement, circuit) == {}
+ReplaceCircuitWith(pattern, circuit, replacement) ==
+  LET replacementQubitMap == MapRangeToRange( SeqBitBindings(pattern), SeqBitBindings(circuit) )
+      replacementParameterMap == ParameterMappings(circuit)
+  IN
+  [ x \in 1..Len(replacement) |-> RemapReplacementInstruction( replacementQubitMap, replacementParameterMap, replacement[x] ) ]
+  \*RemapReplacementInstruction( replacementQubitMap, replacementParameterMap, replacement[4] )
+  \*<< replacementQubitMap, replacementParameterMap, replacement[4] >>
+
+
 =============================================================================
 \* Modification History
 \* Created Wed Dec 2 15:13:39 CST 2020 by vputz

@@ -10,14 +10,14 @@ H_A == [name |-> "H_A", parameters |-> {}, qubitIds |-> << 1 >> ]
 SWAP_A == [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> << 2, 3 >> ]
 RZ_A == [name |-> "RZ_A", parameters |-> {"theta"}, qubitIds |-> << 0 >>]
 UNTRANSLATABLE_A == [name |-> "UNTRANSLATABLE_A", parameters |-> {}, qubitIds |-> << 0 >> ]
-GATES_A == {X_A,H_A,SWAP_A, UNTRANSLATABLE_A}
+GATES_A == {X_A,H_A,SWAP_A,RZ_A, UNTRANSLATABLE_A}
 PARAMETER_VALUES_A == { 40, 50 }
 
 X_B == [name |-> "X_B", parameters |-> {}, qubitIds |-> << 4 >> ]
 H_B == [name |-> "H_B", parameters |-> {}, qubitIds |-> << 5 >> ]
 CX_B == [name |-> "CX_B", parameters |-> {}, qubitIds |-> << 6, 7 >> ]
 RZ_B == [name |-> "RZ_B", parameters |-> {"theta_b"}, qubitIds |-> << 0 >> ]
-GATES_B == {X_B,H_B, CX_B}
+GATES_B == {X_B,H_B, CX_B, RZ_B}
 PARAMETER_VALUES_B == {60, 70}
 
 

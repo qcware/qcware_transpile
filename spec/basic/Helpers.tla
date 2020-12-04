@@ -66,5 +66,16 @@ SetFunction(S) ==
   LET SetDomain == UNION { DOMAIN f: f \in S } IN
   [ x \in SetDomain |-> SetFunctionCall(x, S) ]
 
+\* maps the range of f to the range of g assuming they have identical
+\* domains
+MapRangeToRange(f,g) ==
+  MergeFunctionSet({ f[x] :> g[x] : x \in DOMAIN f })
+
+
+\* checks to see if f is a subfunction of g
+IsSubfunction(f, g) ==
+  /\ DOMAIN f \subseteq DOMAIN g
+  /\ \A x \in DOMAIN f: f[x] = g[x]
+
 
 ====
