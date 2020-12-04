@@ -1,5 +1,5 @@
 ---- MODULE Helpers ----
-EXTENDS FiniteSets, Integers, Sequences
+EXTENDS FiniteSets, Integers, Sequences, TLC
 
 \* The set of all items in a tuple
 TupleMembers(t) == {t[x]: x \in 1..Len(t)}
@@ -31,6 +31,40 @@ FirstIndexOf(item, seq) ==
 \* is mapped, ie MapSeqToSeq(<<2,2>>, <<3,4>>) results in 2:>3
 MapSeqToSeq(seq1, seq2) ==
   [ x \in Range(seq1) |-> seq2[FirstIndexOf(x, seq1)] ]
+
+
+\* for a given function with domain D and range R, return a new function
+\* which maps each value in range R to a set of source values in domain D
+ReverseFunction(f) ==
+  LET D == DOMAIN f
+      R == Range(f) IN
+    [ x \in R |-> { y \in D : f[y] = x } ]
+
+\* learntla.com/tla/operators
+\* Calls a reduce on a set of items given an operation, a set of items,
+\* and a starting seed value
+RECURSIVE SetReduce(_, _, _)
+
+SetReduce(Op(_, _), S, value) ==
+  IF S = {} THEN value
+  ELSE LET s == CHOOSE s \in S: TRUE IN
+     SetReduce(Op, S \ {s}, Op(s, value))
+
+\* Given a set of functions, appends them into one function
+MergeFunctionSet(S) ==
+  SetReduce(@@, S, EMPTYFUNC)
+
+\* poorly named; returns the set of ranges for the functions in S
+\* for which x is defined on the domain
+SetFunctionCall(x, S) ==
+  LET definedFunctions == { f \in S : x \in DOMAIN f } IN
+  UNION { f[x] : f \in definedFunctions }
+
+\* actually creates a function that returns SetFunctionCall(x,S)
+\* for every item in the domain of all functions in S
+SetFunction(S) ==
+  LET SetDomain == UNION { DOMAIN f: f \in S } IN
+  [ x \in SetDomain |-> SetFunctionCall(x, S) ]
 
 
 ====

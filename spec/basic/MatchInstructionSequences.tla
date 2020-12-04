@@ -1,5 +1,5 @@
 ------------------------------ MODULE MatchInstructionSequences ------------------------------
-EXTENDS translate, Sequences
+EXTENDS Sequences, Integers, Helpers, TLC
 
 (* A Bit Binding Signature is the set of all gate bindings (within
 a sequence, this is the tuple << instruction_index, QubitId >> which are
@@ -19,34 +19,6 @@ PrependIndexToDomain(index, f) ==
 \* and the set of forward bit bindings for a sequence of instructions
 SeqBitBindings(s) ==
   {PrependIndexToDomain(n, BitBindings(s[n])): n \in 1..Len(s)}
-
-\* for a given function with domain D and range R, return a new function
-\* which maps each value in range R to a set of source values in domain D
-ReverseFunction(f) ==
-  LET D == DOMAIN f
-      R == Range(f) IN
-    [ x \in R |-> { y \in D : f[y] = x } ]
-
-\* learntla.com/tla/operators
-RECURSIVE SetReduce(_, _, _)
-
-SetReduce(Op(_, _), S, value) ==
-  IF S = {} THEN value
-  ELSE LET s == CHOOSE s \in S: TRUE IN
-     SetReduce(Op, S \ {s}, Op(s, value))
-
-MergeFunctionSet(S) ==
-  SetReduce(@@, S, EMPTYFUNC)
-
-\* poorly named; returns the set of ranges for the functions in S
-\* for which x is defined on the domain
-SetFunctionCall(x, S) ==
-  LET definedFunctions == { f \in S : x \in DOMAIN f } IN
-  UNION { f[x] : f \in definedFunctions }
-
-SetFunction(S) ==
-  LET SetDomain == UNION { DOMAIN f: f \in S } IN
-  [ x \in SetDomain |-> SetFunctionCall(x, S) ]
 
 \* the set of bindings in a sequence
 BitBindingSignature(circuit) ==
