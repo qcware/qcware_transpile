@@ -26,5 +26,11 @@ FirstIndexOf(item, seq) ==
   LET indices == IndicesOf(item, seq) IN
   CHOOSE x \in indices : \A y \in indices \ {x}: x < y
 
+\* returns a function that maps elements of sequence 1 onto sequence 2.
+\* If an item occurs more than once in seq1, only the first occurrence
+\* is mapped, ie MapSeqToSeq(<<2,2>>, <<3,4>>) results in 2:>3
+MapSeqToSeq(seq1, seq2) ==
+  [ x \in Range(seq1) |-> seq2[FirstIndexOf(x, seq1)] ]
+
 
 ====
