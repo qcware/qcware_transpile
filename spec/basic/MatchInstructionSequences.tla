@@ -18,15 +18,13 @@ PrependIndexToDomain(index, f) ==
 
 \* and the set of forward bit bindings for a sequence of instructions
 SeqBitBindings(s) ==
-  {PrependIndexToDomain(n, BitBindings(s[n])): n \in 1..Len(s)}
+  MergeFunctionSet({PrependIndexToDomain(n, BitBindings(s[n])): n \in 1..Len(s)})
 
 \* the set of bindings in a sequence
 BitBindingSignature(circuit) ==
   LET forwardBindings == SeqBitBindings(circuit) IN
-  LET reverseBindings == {ReverseFunction(f): f \in forwardBindings} IN
-  LET SetReverseBindings == SetFunction(reverseBindings)
-  IN
-  Range(SetReverseBindings)
+  LET reverseBindings == ReverseFunction(forwardBindings) IN
+  Range(reverseBindings) \*SetReverseBindings)
   
 
 GateNames(circuit) ==
@@ -35,12 +33,23 @@ GateNames(circuit) ==
 ParameterMappings(circuit) ==
   [ x \in 1..Len(circuit) |-> circuit[x][2] ]
 
+\* checks to see if f is a subfunction of g
+IsSubfunction(f, g) ==
+  /\ DOMAIN f \subseteq DOMAIN g
+  /\ \A x \in DOMAIN f: f[x] = g[x]
+
+ParameterMappingsMatch( mappingsA, mappingsB ) ==
+  /\ DOMAIN mappingsA = DOMAIN mappingsB
+  /\ \A index \in DOMAIN mappingsA:
+    IsSubfunction( mappingsA[index], mappingsB[index] )
 \* whether one circuit matches another on everything except the actual bits
-\* bound to the inputs
-CircuitStructuresMatch(circuit_A, circuit_B) ==
-  /\ GateNames(circuit_A) = GateNames(circuit_B)
-\*  /\ ParameterMappings(circuit_A) = ParameterMappings(circuit_B)
-  /\ BitBindingSignature(circuit_A) = BitBindingSignature(circuit_B)
+\* bound to the inputs.  A pattern on the left matches if every defined
+\* parameter on the left matches the same defined parameter on the right;
+\* if no parameters are defined on the left, the parameters match.
+PatternMatchesCircuit(pattern, circuit) ==
+  /\ GateNames(pattern) = GateNames(circuit)
+  /\ ParameterMappingsMatch(ParameterMappings(pattern), ParameterMappings(circuit))
+  /\ BitBindingSignature(pattern) = BitBindingSignature(circuit)
   
 TEST_A == << << [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> <<2, 3>>],
             << >>,
@@ -62,7 +71,14 @@ TEST_B == << << [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> <<2, 3>>],
 \* mapping could be remapped to another gate (for example, Rx(pi) == CX?)
 CircuitFromGate(g) ==
   << g, EMPTYFUNC, 1..Len(g.qubitIds) >>
-  
+
+
+\* Create a replacement for a circuit.  The circuit input is a sequence of
+\* instructions; the replacement is a circuit with bindings for its
+\* unbound parameters and its replacement qubit mapping.
+\* the qubit binding is achieved by matching forward bindings from the
+\* pattern to the circuit.
+ReplaceCircuitWith(pattern, replacement, circuit) == {}
 =============================================================================
 \* Modification History
 \* Created Wed Dec 2 15:13:39 CST 2020 by vputz
