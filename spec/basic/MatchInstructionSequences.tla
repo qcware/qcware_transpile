@@ -76,8 +76,9 @@ TEST_B == << << [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> <<2, 3>>],
 \* match regardless of their parameter mappings, but we may have to think
 \* about this; there may be a case where a gate with a particular parameter
 \* mapping could be remapped to another gate (for example, Rx(pi) == CX?)
+\* We're also taking the non-tla route that circuits begin with bit 0
 CircuitFromGate(g) ==
-  << << g, EMPTYFUNC, [ x \in 1..Len(g.qubitIds) |-> x ] >> >>
+  << << g, EMPTYFUNC, [ x \in 1..Len(g.qubitIds) |-> x-1 ] >> >>
 
 
 TEST_PATTERN_A == << << SWAP_A, EMPTYFUNC, << 0,1 >> >>,
@@ -88,6 +89,13 @@ TEST_REPLACEMENT_A == << << CX_B, EMPTYFUNC, << 0, 1 >> >>,
                        << CX_B, EMPTYFUNC, << 1, 0 >> >>,
                        << CX_B, EMPTYFUNC, << 0, 1 >> >>,
 		       << RZ_B, "theta_b" :> << 2, "theta_a" >>, << 0 >> >> >>
+
+\* a replacement is valid for a pattern if the replacement addresses a subset of the
+\* qubits addressed by the pattern using the same IDs.
+ReplacementValidForPattern(pattern, replacement) ==
+  LET pattern_qubits == UNION { Range(pattern[x][3]): x \in DOMAIN pattern }
+      replacement_qubits == UNION { Range(replacement[x][3]): x \in DOMAIN replacement } IN
+  replacement_qubits \subseteq pattern_qubits
 
 RemapReplacementInstruction( ReplacementQubitMap, ReplacementParameterMap, instr ) ==
   LET parameters == [ x \in DOMAIN instr[2] |-> ReplacementParameterMap[ instr[2][x][1] ][ instr[2][x][2] ] ]
@@ -101,7 +109,11 @@ RemapReplacementInstruction( ReplacementQubitMap, ReplacementParameterMap, instr
 \* the qubit binding is achieved by matching forward bindings from the
 \* pattern to the circuit.
 CircuitReplacement(pattern, circuit, replacement) ==
-  LET replacementQubitMap == MapRangeToRange( SeqBitBindings(pattern), SeqBitBindings(circuit) )
+  LET
+      \* A map from the bindings in the pattern to the bindings in the circuit, in other words
+      \* if the pattern has qubit IDs 0,1 and the circuit has corresponding qubit ids 3,4,
+      \* the map is  0:>3 @@ 1:>4
+      replacementQubitMap == MapRangeToRange( SeqBitBindings(pattern), SeqBitBindings(circuit) )
       replacementParameterMap == ParameterMappings(circuit)
   IN
   [ x \in 1..Len(replacement) |-> RemapReplacementInstruction( replacementQubitMap, replacementParameterMap, replacement[x] ) ]
