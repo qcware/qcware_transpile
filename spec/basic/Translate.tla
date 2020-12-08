@@ -17,7 +17,7 @@ SingleGateTranslations ==
 MultiGateTranslations ==
 {
   [ pattern |-> << << RZ_A, EMPTYFUNC, << 0 >> >> >>,
-    replacement |-> << << RZ_B, "theta_b" :> << 1, "theta_a" >>, << 0 >> >> >> ],
+    replacement |-> << << RZ_B, "theta_b" :> << 1, "theta" >>, << 0 >> >> >> ],
   
   [ pattern |-> CircuitFromGate(SWAP_A),
     replacement |-> << << CX_B, EMPTYFUNC, << 0, 1 >> >>,
@@ -56,60 +56,79 @@ CircuitIsTranslatable(circuit, translations) ==
   \A x \in DOMAIN circuit : StepIsTranslatable(circuit[x], translations)
 
 
-(* --algorithm circuits
+(* --algorithm Translate
 variables
   circuit_a \in CIRCUITS_A;
   circuit_b = << >>;
-  translatable = FALSE;
   index = 1;
+  translated_circuits = {};
+  untranslatable_circuits = {};
 begin
-  translatable := CircuitIsTranslatable(circuit_a, Translations);
-  if translatable then
+  check_translatable:
+  if CircuitIsTranslatable(circuit_a, Translations) then
+  translate_circuit:
     while index < Len(circuit_a) do
+    translate_instruction:
       circuit_b := circuit_b \o TranslateInstruction(circuit_a[index]);
       index := index + 1;
-    end while
-  end if
-end algorithm; *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-9e2368b0ba695cb068ee3b5f8fe4e84c
-VARIABLES circuit_a, circuit_b, translatable, index, pc
+    end while;
+    translated_circuits := translated_circuits \cup { circuit_b };
+  else
+    untranslatable_circuits := untranslatable_circuits \cup { circuit_b };
+  end if;
 
-vars == << circuit_a, circuit_b, translatable, index, pc >>
+end algorithm; *)
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-0be8d3295ad60363f1b1cf2619b88b75
+VARIABLES circuit_a, circuit_b, index, translated_circuits, 
+          untranslatable_circuits, pc
+
+vars == << circuit_a, circuit_b, index, translated_circuits, 
+           untranslatable_circuits, pc >>
 
 Init == (* Global variables *)
         /\ circuit_a \in CIRCUITS_A
         /\ circuit_b = << >>
-        /\ translatable = FALSE
         /\ index = 1
-        /\ pc = "Lbl_1"
+        /\ translated_circuits = {}
+        /\ untranslatable_circuits = {}
+        /\ pc = "check_translatable"
 
-Lbl_1 == /\ pc = "Lbl_1"
-         /\ translatable' = CircuitIsTranslatable(circuit_a, Translations)
-         /\ IF translatable'
-               THEN /\ pc' = "Lbl_2"
-               ELSE /\ pc' = "Done"
-         /\ UNCHANGED << circuit_a, circuit_b, index >>
+check_translatable == /\ pc = "check_translatable"
+                      /\ IF CircuitIsTranslatable(circuit_a, Translations)
+                            THEN /\ pc' = "translate_circuit"
+                                 /\ UNCHANGED untranslatable_circuits
+                            ELSE /\ untranslatable_circuits' = (untranslatable_circuits \cup { circuit_b })
+                                 /\ pc' = "Done"
+                      /\ UNCHANGED << circuit_a, circuit_b, index, 
+                                      translated_circuits >>
 
-Lbl_2 == /\ pc = "Lbl_2"
-         /\ IF index < Len(circuit_a)
-               THEN /\ circuit_b' = circuit_b \o TranslateInstruction(circuit_a[index])
-                    /\ index' = index + 1
-                    /\ pc' = "Lbl_2"
-               ELSE /\ pc' = "Done"
-                    /\ UNCHANGED << circuit_b, index >>
-         /\ UNCHANGED << circuit_a, translatable >>
+translate_circuit == /\ pc = "translate_circuit"
+                     /\ IF index < Len(circuit_a)
+                           THEN /\ pc' = "translate_instruction"
+                                /\ UNCHANGED translated_circuits
+                           ELSE /\ translated_circuits' = (translated_circuits \cup { circuit_b })
+                                /\ pc' = "Done"
+                     /\ UNCHANGED << circuit_a, circuit_b, index, 
+                                     untranslatable_circuits >>
+
+translate_instruction == /\ pc = "translate_instruction"
+                         /\ circuit_b' = circuit_b \o TranslateInstruction(circuit_a[index])
+                         /\ index' = index + 1
+                         /\ pc' = "translate_circuit"
+                         /\ UNCHANGED << circuit_a, translated_circuits, 
+                                         untranslatable_circuits >>
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == pc = "Done" /\ UNCHANGED vars
 
-Next == Lbl_1 \/ Lbl_2
+Next == check_translatable \/ translate_circuit \/ translate_instruction
            \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-783a2bae7b72cdf4d19542aa62c6d4e0
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-e71e9c1049ae8a1de9888ebd212a5649
 
 
 =============================================================================

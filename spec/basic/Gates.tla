@@ -36,7 +36,7 @@ TranslateGate ==
   << X_A >> :> << [gate |-> X_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 4:>0] >> 
   @@ << H_A >> :> << [gate |-> H_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 5:>1] >>
   @@ << RZ_A >> :> << [gate |-> RZ_B,
-               parameterMap |-> [theta_b |-> << "theta_a",
+               parameterMap |-> [theta_b |-> << "theta",
 	                                     CHOOSE x \in [PARAMETER_VALUES_A -> PARAMETER_VALUES_B]: TRUE >> ],
 	       qubitMap |-> 0:>0] >>
   @@ << SWAP_A >> :> << [gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 6:>2 @@ 7:>3 ],

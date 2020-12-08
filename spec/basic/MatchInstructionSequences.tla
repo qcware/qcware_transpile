@@ -100,7 +100,7 @@ RemapReplacementInstruction( ReplacementQubitMap, ReplacementParameterMap, instr
 \* unbound parameters and its replacement qubit mapping.
 \* the qubit binding is achieved by matching forward bindings from the
 \* pattern to the circuit.
-ReplaceCircuitWith(pattern, circuit, replacement) ==
+CircuitReplacement(pattern, circuit, replacement) ==
   LET replacementQubitMap == MapRangeToRange( SeqBitBindings(pattern), SeqBitBindings(circuit) )
       replacementParameterMap == ParameterMappings(circuit)
   IN
@@ -108,7 +108,11 @@ ReplaceCircuitWith(pattern, circuit, replacement) ==
   \*RemapReplacementInstruction( replacementQubitMap, replacementParameterMap, replacement[4] )
   \*<< replacementQubitMap, replacementParameterMap, replacement[4] >>
 
-
+CircuitReplacementFromTranslations(circuit, translations) ==
+  LET matches == { x \in translations: PatternMatchesCircuit(x.pattern, circuit) } IN
+  \* right now, choose any suitable translation without weight/cost
+  LET match == CHOOSE x \in matches: TRUE IN
+  CircuitReplacement(match.pattern, circuit, match.replacement)
 =============================================================================
 \* Modification History
 \* Created Wed Dec 2 15:13:39 CST 2020 by vputz
