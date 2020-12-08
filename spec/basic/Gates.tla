@@ -45,36 +45,5 @@ PARAMETER_VALUES_B == {60, 70}
 
 NumGateQubits(gate) == Len(gate.qubitIds)
 
-(*
-This was an idea for gate translation.  It turns out that gate translation
-is not nearly as useful as instruction or circuit translation, so this is
-not implemented.
-
-A gate translation maps a source gate to a sequence of gates.  This necessitates,
-for each destination gate, a translation of qubit_ids.
-
-The qubit map maps from B to A, which sounds unintuitive but works correctly.  We
-use the qubit IDs on the B side to "pull" the values on the A side.
-
-Domain(qubitMap) = Range(gate.qubitIds)
-
-This definition should be made more generic of course, and is not used
-since whole-circuit translation is more powerful.  It is included here
-as a record and should be removed.*)
-TranslateGate == 
-  << X_A >> :> << [gate |-> X_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 4:>0] >> 
-  @@ << H_A >> :> << [gate |-> H_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 5:>1] >>
-  @@ << RZ_A >> :> << [gate |-> RZ_B,
-               parameterMap |-> [theta_b |-> << "theta",
-	                                     CHOOSE x \in [PARAMETER_VALUES_A -> PARAMETER_VALUES_B]: TRUE >> ],
-	       qubitMap |-> 0:>0] >>
-  @@ << SWAP_A >> :> << [gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 6:>2 @@ 7:>3 ],
-                [gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 7:>2 @@ 6:>3 ],
-		[gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 6:>2 @@ 7:>3 ]>>
-
-\* You could thus make a list of translatable gates by
-\* TranslatableGates == DOMAIN TranslateGate
-\* But this is not really so useful and collides with a later definition
-
 
 ====

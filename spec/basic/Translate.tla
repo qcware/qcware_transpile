@@ -67,7 +67,7 @@ begin
   translate_circuit:
     while index < Len(circuit_a) do
     translate_instruction:
-      circuit_b := circuit_b \o TranslateInstruction(circuit_a[index]);
+      circuit_b := circuit_b \o CircuitReplacementFromTranslations( << circuit_a[index] >> , Translations );
       index := index + 1;
     end while;
   else
@@ -75,7 +75,7 @@ begin
   end if;
 
 end algorithm; *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-2b8b2cf4c717549e92a12905562a20c9
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-7ce0fca01f83a1ba0c6b6428a7dd5d47
 VARIABLES circuit_a, circuit_b, index, pc
 
 vars == << circuit_a, circuit_b, index, pc >>
@@ -100,7 +100,7 @@ translate_circuit == /\ pc = "translate_circuit"
                      /\ UNCHANGED << circuit_a, circuit_b, index >>
 
 translate_instruction == /\ pc = "translate_instruction"
-                         /\ circuit_b' = circuit_b \o TranslateInstruction(circuit_a[index])
+                         /\ circuit_b' = circuit_b \o CircuitReplacementFromTranslations( << circuit_a[index] >> , Translations )
                          /\ index' = index + 1
                          /\ pc' = "translate_circuit"
                          /\ UNCHANGED circuit_a
@@ -115,7 +115,7 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-bb74e843f215a40f4f5bb6161d8f846b
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4a0f3b8e0e14586b43e3e1fbadea7cf8
 
 
 =============================================================================

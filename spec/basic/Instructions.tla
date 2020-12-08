@@ -35,22 +35,5 @@ return parameter_assignments_B *)
 TranslateParameters( parameter_assignments_A, parameter_map_BA ) ==
   [ x \in DOMAIN parameter_map_BA |-> parameter_map_BA[x][2][parameter_assignments_A[parameter_map_BA[x][1]]] ]
 
-(* Translating an instruction is a bit tricky.  An instruction is a gate
-with the qubitIds (on the gate) bound to qubits (in circuit A).  One must
-then produce a sequence of instructions with the qubit IDs on gate(s) B
-bound to qubit ids on circuit B.
-
-This will map << gate, parameter_mappings, bits >>
-to << << gate, parameter_mappings, bits >> .. >> *)
-TranslateInstruction(inst) ==
-  LET Gate_A == inst[1] IN
-  LET Parameter_mappings_A == inst[2] IN
-  LET Bits_A == inst[3] IN
-  LET Translation == TranslateGate[<< Gate_A >>] IN
-  LET dom_B == DOMAIN Translation IN
-  [ x \in dom_B |-> << Translation[x].gate,
-                   TranslateParameters(Parameter_mappings_A, Translation[x].parameterMap),
-                   
-                   MapBits(Bits_A, Gate_A.qubitIds, Translation[x].qubitMap, Translation[x].gate.qubitIds) >> ]
 
 ====
