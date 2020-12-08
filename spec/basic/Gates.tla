@@ -43,7 +43,7 @@ TranslateGate ==
                 [gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 7:>2 @@ 6:>3 ],
 		[gate |-> CX_B, parameterMap |-> EMPTYFUNC, qubitMap |-> 6:>2 @@ 7:>3 ]>>
 
-TranslatableGates == DOMAIN TranslateGate
+\* TranslatableGates == DOMAIN TranslateGate
 
 
 ====

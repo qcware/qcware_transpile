@@ -3,7 +3,8 @@ EXTENDS Sequences, Integers, Helpers, TLC, Gates
 
 (* Some terminology:
 
-A gate defines a name and the domains of parameters and bit ids.
+A gatedef defines a name and the domains of parameters and bit ids.
+A gate, then, is a gatedef with parameter bindings (not terribly useful)
 A sequence of gates paired with bit bindings but with some or no parameter bindings is a pattern
 An instruction pairs a gate with parameter bindings and bit id bindings
 A sequence of instructions is a circuit
@@ -76,7 +77,7 @@ TEST_B == << << [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> <<2, 3>>],
 \* about this; there may be a case where a gate with a particular parameter
 \* mapping could be remapped to another gate (for example, Rx(pi) == CX?)
 CircuitFromGate(g) ==
-  << g, EMPTYFUNC, 1..Len(g.qubitIds) >>
+  << << g, EMPTYFUNC, [ x \in 1..Len(g.qubitIds) |-> x ] >> >>
 
 
 TEST_PATTERN_A == << << SWAP_A, EMPTYFUNC, << 0,1 >> >>,
