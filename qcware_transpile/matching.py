@@ -33,21 +33,31 @@ class Dialect(object):
     gate_defs = attr.ib(type=PSet, converter=pset)
 
 
-@require("names in parameter_bindings must be a subset of those in gatedef",
-         lambda args: set(args.parameter_bindings.keys()).issubset(
-             args.gatedef.parameter_names))
-@require(
-    "number of bit bindings must be equal to number of bits for the gatedef",
-    lambda args: len(args.bit_bindings) == len(args.gatedef.qubit_ids))
-def instruction(
-    gatedef: GateDef,
-    bit_bindings: List,
-    parameter_bindings: Optional[Mapping] = pmap()) -> PMap:
-    return pmap({
-        "gatedef": gatedef,
-        "parameter_bindings": pmap(parameter_bindings),
-        "bit_bindings": pvector(bit_bindings)
-    })
+@attr.s(frozen=True)
+class Instruction(object):
+    """
+    An instruction: a gate definition paired with parameter bindings
+    and bit bindings
+    """
+    gate_def = attr.ib(type=GateDef)
+    bit_bindings = attr.ib(type=Sequence[int], converter=_qubit_ids)
+    parameter_bindings = attr.ib(type=Optional[Mapping],
+                                 default=pmap(),
+                                 converter=pmap)
+
+    @parameter_bindings.validator
+    def check_parameter_bindings(self, attribute, value):
+        if not set(value.keys()).issubset(self.gate_def.parameter_names):
+            raise ValueError(
+                "parameter bindings must bind parameters in the gate def"
+            )
+
+    @bit_bindings.validator
+    def check_bit_bindings(self, attribute, value):
+        if len(value) != len(self.gate_def.qubit_ids):
+            raise ValueError(
+                "number of bit bindings must be equal to #bits in the gate def"
+            )
 
 
 def bit_bindings_map(instruction: Mapping) -> PMap:
@@ -57,8 +67,8 @@ def bit_bindings_map(instruction: Mapping) -> PMap:
     bit ids 0 and 1 to circuit bits 7 and 8 would return
     the map {0:7, 1:8}
     """
-    qubit_ids = instruction['gatedef'].qubit_ids
-    bit_assignments = instruction['bit_bindings']
+    qubit_ids = instruction.gate_def.qubit_ids
+    bit_assignments = instruction.bit_bindings
     return map_seq_to_seq(qubit_ids, bit_assignments)
 
 

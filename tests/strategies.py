@@ -1,7 +1,7 @@
 from hypothesis.strategies import (composite, integers, text, lists, sets,
                                    sampled_from)
 from hypothesis import assume
-from qcware_transpile.matching import GateDef, instruction, Dialect, circuit
+from qcware_transpile.matching import GateDef, Instruction, Dialect, circuit
 from typing import Set, Mapping
 import string
 
@@ -67,7 +67,7 @@ def instructions(draw,
               min_size=len(gatedef.qubit_ids),
               max_size=len(gatedef.qubit_ids),
               unique=True))
-    return instruction(gatedef, bit_bindings, parameter_bindings)
+    return Instruction(gate_def=gatedef, bit_bindings=bit_bindings, parameter_bindings=parameter_bindings)
 
 
 @composite
