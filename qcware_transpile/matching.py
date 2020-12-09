@@ -20,6 +20,13 @@ def gate_def(name: str,
     })
 
 
+def dialect(name: str, gate_defs: Set[Mapping]):
+    """
+    Create a "dialect"; a named set of gate definitions
+    """
+    return pmap({"name": name, "gate_defs": gate_defs})
+
+
 @require("names in parameter_bindings must be a subset of those in gatedef",
          lambda args: set(args.parameter_bindings.keys()).issubset(
              args.gatedef.parameter_names))
@@ -60,3 +67,7 @@ def circuit_bit_bindings(circuit: Sequence[Dict]) -> PMap:
         for k, v in bit_bindings_map(instruction):
             result[(i, k)] = v
     return pmap(result)
+
+
+def circuit(dialect_name: str, instructions: Sequence[Mapping]) -> PMap:
+    return pmap({"dialect": dialect_name, "instructions": instructions})
