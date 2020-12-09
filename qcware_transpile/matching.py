@@ -8,15 +8,16 @@ from .helpers import (map_seq_to_seq)
 
 
 def gate_def(name: str,
-             bits: Union[int, List[int]],
+             bits: Union[int, Set[int]],
              parameter_names: Optional[Set[str]] = None) -> PMap:
-    bit_ids = pvector(range(bits)) if isinstance(bits, int) else pvector(bits)
+    qubit_ids = pvector(range(bits)) if isinstance(bits,
+                                                   int) else pvector(bits)
     parameter_names = pset(
         []) if parameter_names is None else pset(parameter_names)
     return pmap({
         "name": name,
         "parameter_names": parameter_names,
-        "bit_ids": bit_ids
+        "qubit_ids": qubit_ids
     })
 
 
@@ -32,7 +33,7 @@ def dialect(name: str, gate_defs: Set[Mapping]):
              args.gatedef.parameter_names))
 @require(
     "number of bit bindings must be equal to number of bits for the gatedef",
-    lambda args: len(args.bit_bindings) == len(args.gatedef.bit_ids))
+    lambda args: len(args.bit_bindings) == len(args.gatedef['qubit_ids']))
 def instruction(
     gatedef: Mapping,
     bit_bindings: List,
@@ -51,20 +52,20 @@ def bit_bindings_map(instruction: Mapping) -> PMap:
     bit ids 0 and 1 to circuit bits 7 and 8 would return
     the map {0:7, 1:8}
     """
-    bit_ids = instruction['gatedef']['bit_ids']
+    qubit_ids = instruction['gatedef']['qubit_ids']
     bit_assignments = instruction['bit_bindings']
-    return map_seq_to_seq(bit_ids, bit_assignments)
+    return map_seq_to_seq(qubit_ids, bit_assignments)
 
 
-def circuit_bit_bindings(circuit: Sequence[Dict]) -> PMap:
+def circuit_bit_bindings(circuit: Mapping) -> PMap:
     """
     Given a sequence of instructions, return the complete
     map of bit bindings.  So "H(1), CX(0,1)" would return
     the bit bindings { (1,0):1, (2,0):0, (2,1):1 }
     """
     result = {}
-    for instruction, i in enumerate(circuit):
-        for k, v in bit_bindings_map(instruction):
+    for i, instruction in enumerate(circuit['instructions']):
+        for k, v in bit_bindings_map(instruction).items():
             result[(i, k)] = v
     return pmap(result)
 

@@ -39,3 +39,13 @@ def prepend_index_to_domain(index: int, f: Mapping):
     would return { (3,1): 2, (3,3): 4 }
     """
     return pmap({(index, k): v for k, v in f.items()})
+
+
+def reverse_map(f: Mapping):
+    result = {}
+    for k, v in f.items():
+        if v in result:
+            result[v].add(k)
+        else:
+            result[v] = {k}
+    return pmap(result)
