@@ -1,7 +1,7 @@
 from hypothesis.strategies import (composite, integers, text, lists, sets,
                                    sampled_from)
 from hypothesis import assume
-from qcware_transpile.matching import GateDef, instruction, dialect, circuit
+from qcware_transpile.matching import GateDef, instruction, Dialect, circuit
 from typing import Set, Mapping
 import string
 
@@ -39,7 +39,7 @@ def dialects(draw,
     gatedefs = draw(lists(gate_defs(), min_size=ngates, max_size=ngates))
     gatenames = [x.name for x in gatedefs]
     assume(len(set(gatenames)) == len(gatenames))
-    return dialect(name, gatedefs)
+    return Dialect(name, set(gatedefs))
 
 
 @composite
@@ -85,7 +85,7 @@ def circuits(draw,
               max_size=max_num_qubits,
               unique=True))
     _instructions = draw(
-        lists(instructions(dialect['gate_defs'], qubit_ids, min_parameter,
+        lists(instructions(dialect.gate_defs, qubit_ids, min_parameter,
                            max_parameter),
               min_size=min_length,
               max_size=max_length))
@@ -104,7 +104,7 @@ def dialect_and_circuit(draw,
                         max_parameter: int = 100):
     d = draw(dialects(min_gates=min_gates, max_gates=max_gates))
     min_qubits_required_by_dialect = min(
-        [len(g.qubit_ids) for g in d['gate_defs']])
+        [len(g.qubit_ids) for g in d.gate_defs])
     assert min_num_qubits >= min_qubits_required_by_dialect
     c = draw(
         circuits(d,

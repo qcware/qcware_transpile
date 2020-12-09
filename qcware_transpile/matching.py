@@ -13,18 +13,24 @@ def _qubit_ids(qubits: Union[int, Sequence[int]]):
                                                 int) else pvector(qubits)
 
 
-@attr.s
+@attr.s(frozen=True)
 class GateDef(object):
+    """
+    A gate definition, consisting only of a name, a set of names
+    for parameters, and an ordered collection of integer qubit IDs
+    """
     name = attr.ib(type=str)
-    parameter_names = attr.ib(type=PSet, converter=pset)
-    qubit_ids = attr.ib(type=PVector, converter=_qubit_ids)
+    parameter_names = attr.ib(type=Set[str], converter=pset)
+    qubit_ids = attr.ib(type=Sequence[int], converter=_qubit_ids)
 
 
-def dialect(name: str, gate_defs: Set[GateDef]):
+@attr.s(frozen=True)
+class Dialect(object):
     """
-    Create a "dialect"; a named set of gate definitions
+    A "dialect" -- essentially just a named set of gate definitions
     """
-    return pmap({"name": name, "gate_defs": gate_defs})
+    name = attr.ib(type=str)
+    gate_defs = attr.ib(type=PSet, converter=pset)
 
 
 @require("names in parameter_bindings must be a subset of those in gatedef",
