@@ -4,6 +4,7 @@ Files for defining gates, gate definitions, and the like
 from pyrsistent import pmap, pvector, pset
 from typing import Set, List, Union, Mapping, Optional
 from dpcontracts import require
+from .helpers import map_seq_to_seq
 
 
 def gate_def(name: str,
@@ -33,3 +34,13 @@ def instruction(gatedef: Mapping,
         "parameter_bindings": pmap(parameter_bindings),
         "bit_bindings": pvector(bit_bindings)
     })
+
+
+def bit_bindings_map(instruction: Mapping):
+    """
+    Returns a "binding map" of bit ids to bit assignments
+    """
+    bit_ids = instruction['gatedef']['bit_ids']
+    bit_assignments = instruction['bit_bindings']
+    return map_seq_to_seq(bit_ids, bit_assignments)
+

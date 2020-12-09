@@ -1,9 +1,10 @@
 """
 Some helper functions
 """
-from typing import Sequence
+from typing import Sequence, Mapping
 from dpcontracts import require
 from pyrsistent import pmap
+
 
 @require("Sequences must be the same length",
          lambda args: len(args.s1) == len(args.s2))
@@ -28,3 +29,13 @@ def map_seq_to_seq(s1: Sequence, s2: Sequence):
         else:
             result[x] = {y}
     return pmap(result)
+
+
+def prepend_index_to_domain(index: int, f: Mapping):
+    """
+    Transforms the keys of a mapping into a tuple with
+    the index as the first element; in other words,
+    if f = { 1: 2, 3: 4 }, prepend_index_to_domain(3,f)
+    would return { (3,1): 2, (3,3): 4 }
+    """
+    return pmap({(index, k): v for k, v in f.items()})
