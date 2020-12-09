@@ -79,14 +79,16 @@ def circuit_bit_bindings(circuit: Mapping) -> PMap:
     the bit bindings { (1,0):1, (2,0):0, (2,1):1 }
     """
     result = {}
-    for i, instruction in enumerate(circuit['instructions']):
+    for i, instruction in enumerate(circuit.instructions):
         for k, v in bit_bindings_map(instruction).items():
             result[(i, k)] = v
     return pmap(result)
 
 
-def circuit(dialect_name: str, instructions: Sequence[Mapping]) -> PMap:
-    return pmap({"dialect": dialect_name, "instructions": instructions})
+@attr.s(frozen=True)
+class Circuit(object):
+    dialect_name = attr.ib(type=str)
+    instructions = attr.ib(type=Sequence[Instruction], converter=pvector)
 
 
 def circuit_bit_binding_signature(c):

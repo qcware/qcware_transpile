@@ -1,7 +1,7 @@
 from hypothesis.strategies import (composite, integers, text, lists, sets,
                                    sampled_from)
 from hypothesis import assume
-from qcware_transpile.matching import GateDef, Instruction, Dialect, circuit
+from qcware_transpile.matching import GateDef, Instruction, Dialect, Circuit
 from typing import Set, Mapping
 import string
 
@@ -89,7 +89,7 @@ def circuits(draw,
                            max_parameter),
               min_size=min_length,
               max_size=max_length))
-    return circuit(dialect.name, _instructions)
+    return Circuit(dialect_name=dialect.name, instructions=_instructions)
 
 
 @composite
