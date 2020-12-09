@@ -1,7 +1,7 @@
 from hypothesis.strategies import (composite, integers, text, lists, sets,
                                    sampled_from)
 from hypothesis import assume
-from qcware_transpile.matching import gate_def, instruction, dialect, circuit
+from qcware_transpile.matching import GateDef, instruction, dialect, circuit
 from typing import Set, Mapping
 import string
 
@@ -18,8 +18,10 @@ def gate_defs(draw,
     """
     Create a random gate definition; used to create arbitrary dialects
     """
-    return gate_def(draw(names), draw(num_bits),
-                    draw(sets(parameter_names, min_size=1, max_size=3)))
+    return GateDef(name=draw(names),
+                   qubit_ids=draw(num_bits),
+                   parameter_names=draw(
+                       sets(parameter_names, min_size=1, max_size=3)))
 
 
 @composite
@@ -35,7 +37,7 @@ def dialects(draw,
     ngates = draw(integers(min_value=min_gates, max_value=max_gates))
     name = draw(name)
     gatedefs = draw(lists(gate_defs(), min_size=ngates, max_size=ngates))
-    gatenames = [x['name'] for x in gatedefs]
+    gatenames = [x.name for x in gatedefs]
     assume(len(set(gatenames)) == len(gatenames))
     return dialect(name, gatedefs)
 
@@ -53,17 +55,17 @@ def instructions(draw,
     """
     gatedef = draw(
         sampled_from(
-            [g for g in gate_defs if len(g['qubit_ids']) <= len(qubit_ids)]))
-    assume(len(gatedef['qubit_ids']) <= len(qubit_ids))
+            [g for g in gate_defs if len(g.qubit_ids) <= len(qubit_ids)]))
+    assume(len(gatedef.qubit_ids) <= len(qubit_ids))
     parameter_bindings = {
         parameter:
         draw(integers(min_value=min_parameter, max_value=max_parameter))
-        for parameter in gatedef['parameter_names']
+        for parameter in gatedef.parameter_names
     }
     bit_bindings = draw(
         lists(sampled_from(qubit_ids),
-              min_size=len(gatedef['qubit_ids']),
-              max_size=len(gatedef['qubit_ids']),
+              min_size=len(gatedef.qubit_ids),
+              max_size=len(gatedef.qubit_ids),
               unique=True))
     return instruction(gatedef, bit_bindings, parameter_bindings)
 
@@ -102,7 +104,7 @@ def dialect_and_circuit(draw,
                         max_parameter: int = 100):
     d = draw(dialects(min_gates=min_gates, max_gates=max_gates))
     min_qubits_required_by_dialect = min(
-        [len(g['qubit_ids']) for g in d['gate_defs']])
+        [len(g.qubit_ids) for g in d['gate_defs']])
     assert min_num_qubits >= min_qubits_required_by_dialect
     c = draw(
         circuits(d,

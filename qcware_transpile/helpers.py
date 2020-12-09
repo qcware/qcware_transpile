@@ -42,6 +42,11 @@ def prepend_index_to_domain(index: int, f: Mapping):
 
 
 def reverse_map(f: Mapping):
+    """
+    Reverses a mapping such that the values of f
+    are mapped to the sets of keys in f corresponding 
+    to that value
+    """
     result = {}
     for k, v in f.items():
         if v in result:

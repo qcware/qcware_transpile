@@ -1,27 +1,26 @@
 """
 Files for defining gates, gate definitions, and the like
 """
-from pyrsistent import (pmap, pvector, pset, PMap)
+from pyrsistent import (pmap, pvector, pset, PMap, PSet, PVector)
 from typing import Set, List, Union, Mapping, Optional, Dict, Sequence
 from dpcontracts import require
 from .helpers import (map_seq_to_seq)
+import attr
 
 
-def gate_def(name: str,
-             bits: Union[int, Set[int]],
-             parameter_names: Optional[Set[str]] = None) -> PMap:
-    qubit_ids = pvector(range(bits)) if isinstance(bits,
-                                                   int) else pvector(bits)
-    parameter_names = pset(
-        []) if parameter_names is None else pset(parameter_names)
-    return pmap({
-        "name": name,
-        "parameter_names": parameter_names,
-        "qubit_ids": qubit_ids
-    })
+def _qubit_ids(qubits: Union[int, Sequence[int]]):
+    return pvector(range(qubits)) if isinstance(qubits,
+                                                int) else pvector(qubits)
 
 
-def dialect(name: str, gate_defs: Set[Mapping]):
+@attr.s
+class GateDef(object):
+    name = attr.ib(type=str)
+    parameter_names = attr.ib(type=PSet, converter=pset)
+    qubit_ids = attr.ib(type=PVector, converter=_qubit_ids)
+
+
+def dialect(name: str, gate_defs: Set[GateDef]):
     """
     Create a "dialect"; a named set of gate definitions
     """
@@ -33,13 +32,13 @@ def dialect(name: str, gate_defs: Set[Mapping]):
              args.gatedef.parameter_names))
 @require(
     "number of bit bindings must be equal to number of bits for the gatedef",
-    lambda args: len(args.bit_bindings) == len(args.gatedef['qubit_ids']))
+    lambda args: len(args.bit_bindings) == len(args.gatedef.qubit_ids))
 def instruction(
-    gatedef: Mapping,
+    gatedef: GateDef,
     bit_bindings: List,
     parameter_bindings: Optional[Mapping] = pmap()) -> PMap:
     return pmap({
-        "gatedef": pmap(gatedef),
+        "gatedef": gatedef,
         "parameter_bindings": pmap(parameter_bindings),
         "bit_bindings": pvector(bit_bindings)
     })
@@ -52,7 +51,7 @@ def bit_bindings_map(instruction: Mapping) -> PMap:
     bit ids 0 and 1 to circuit bits 7 and 8 would return
     the map {0:7, 1:8}
     """
-    qubit_ids = instruction['gatedef']['qubit_ids']
+    qubit_ids = instruction['gatedef'].qubit_ids
     bit_assignments = instruction['bit_bindings']
     return map_seq_to_seq(qubit_ids, bit_assignments)
 
@@ -72,3 +71,7 @@ def circuit_bit_bindings(circuit: Mapping) -> PMap:
 
 def circuit(dialect_name: str, instructions: Sequence[Mapping]) -> PMap:
     return pmap({"dialect": dialect_name, "instructions": instructions})
+
+
+def circuit_bit_binding_signature(c):
+    pass

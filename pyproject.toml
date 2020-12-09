@@ -8,6 +8,7 @@ authors = ["Vic Putz <vic.putz@qcware.com>"]
 python = "^3.8"
 dpcontracts = "^0.6.0"
 pyrsistent = "^0.17.3"
+attrs = "^20.3.0"
 
 [tool.poetry.dev-dependencies]
 hypothesis = "^5.41.5"
