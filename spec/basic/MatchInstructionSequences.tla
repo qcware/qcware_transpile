@@ -123,8 +123,12 @@ ReplacementValidForPattern(pattern, replacement) ==
 \* Remap the replacement instruction to the parameters and qubit IDs used by the circuit.
 \* The replacement qubit maps map from the replacement/pattern to the circuit
 RemapReplacementInstruction( ReplacementQubitMap, ReplacementParameterMap, instr ) ==
-  LET parameters == [ x \in DOMAIN instr[2] |-> ReplacementParameterMap[ instr[2][x][1] ][ instr[2][x][2] ] ]
-      newQubitIds == [ x \in 1..Len(instr[3]) |-> ReplacementQubitMap[ instr[3][x] ] ]
+  LET parameters == 
+            [ x \in DOMAIN instr[2] |-> 
+              ReplacementParameterMap[ instr[2][x][1] ][ instr[2][x][2] ] ]
+         newQubitIds == 
+            [ x \in 1..Len(instr[3]) |-> 
+              ReplacementQubitMap[ instr[3][x] ] ]
   IN
   << instr[1], parameters, newQubitIds >>
 
@@ -153,4 +157,5 @@ CircuitReplacementFromTranslations(circuit, translations) ==
   CircuitReplacement(match.pattern, circuit, match.replacement)
 =============================================================================
 \* Modification History
+\* Last modified Thu Dec 10 13:54:43 CST 2020 by vputz
 \* Created Wed Dec 2 15:13:39 CST 2020 by vputz

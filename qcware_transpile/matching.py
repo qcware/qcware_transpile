@@ -3,7 +3,7 @@ Files for defining gates, gate definitions, and the like
 """
 from pyrsistent import (pmap, pvector, pset)
 from pyrsistent.typing import (PMap, PSet, PVector)
-from typing import Set, List, Union, Mapping, Optional, Dict, Sequence, Tuple
+from typing import Set, List, Union, Mapping, Optional, Dict, Sequence, Tuple, Any
 from dpcontracts import require  # type: ignore
 from .helpers import (map_seq_to_seq, reverse_map)
 import attr
@@ -99,7 +99,8 @@ def instruction_pattern_matches_target(pattern: Instruction,
             and instruction_parameter_bindings_match(pattern, target))
 
 
-def bit_bindings_map(instruction: Instruction) -> PMap[int, Set[int]]:
+def instruction_bit_bindings_map(
+        instruction: Instruction) -> PMap[int, Set[int]]:
     """
     Returns a "binding map" of bit ids to bit assignments;
     in other words, an instruction binding the gate CX with
@@ -109,6 +110,31 @@ def bit_bindings_map(instruction: Instruction) -> PMap[int, Set[int]]:
     qubit_ids = instruction.gate_def.qubit_ids
     bit_assignments = instruction.bit_bindings
     return map_seq_to_seq(qubit_ids, bit_assignments)
+
+
+def remapped_instruction(qubit_map: Mapping[int, int],
+                         parameter_map: Mapping[Tuple[int, str], Any],
+                         target: Instruction) -> Instruction:
+    """
+    This remaps an instruction given a new qubit mapping (from
+    target qubits in one circuit to target qubits in another) and
+    a new parameter map (from the parameters in the original circuit,
+    ie the keys in the parameter map are tuples of (index, parameter_name)
+
+    This requires the parameters in the target to be in tuple form as well,
+    ie {"theta": (1, "theta")}
+
+    Soon that will change in that we will have a microlanguage for
+    expressions (probably borrowed from sympy or something similar)
+    """
+    new_parameters = {
+        k: parameter_map[v]
+        for k, v in target.parameter_bindings.items()
+    }
+    new_bit_bindings = [qubit_map[b] for b in target.bit_bindings]
+    return Instruction(gate_def=target.gate_def,
+                       parameter_bindings=new_parameters,
+                       bit_bindings=new_bit_bindings)
 
 
 @attr.s()
@@ -129,7 +155,7 @@ def circuit_bit_bindings(circuit: Circuit) -> PMap[Tuple[int, int], Set[int]]:
     """
     result: dict = {}
     for i, instruction in enumerate(circuit.instructions):
-        for k, v in bit_bindings_map(instruction).items():
+        for k, v in instruction_bit_bindings_map(instruction).items():
             result[(i, k)] = v
     return pmap(result)
 
@@ -179,3 +205,30 @@ def circuit_pattern_matches_target(pattern: Circuit, target: Circuit) -> bool:
         for i in range(len(pattern.instructions))
     ]) and (circuit_bit_binding_signature(pattern)
             == circuit_bit_binding_signature(target)))
+
+
+def circuit_bit_targets(c: Circuit) -> PSet[int]:
+    """
+    The set of bits targeted by this circuit (the set
+    of bits this circuit's instructions are bound to)
+    """
+    return pset(set().union(*[i.bit_bindings for i in c.instructions])) # type: ignore
+
+
+@attr.s
+class Translation(object):
+    """
+    A translation: a map from one circuit to another.  The replacement
+    must be a fully-bound circuit (all parameters for all instructions
+    must be bound) with the same set of input bits as the pattern
+    """
+    pattern = attr.ib(type=Circuit)
+    replacement = attr.ib(type=Circuit)
+
+    @replacement.validator
+    def check_replacement(self, attribute, value):
+        pattern_bits = circuit_bit_targets(pattern)
+        replacement_bits = circuit_bit_targets(instruction)
+        if pattern_bits != replacement_bits:
+            raise ValueError(
+                "pattern and replacement must target the same set of bits")
