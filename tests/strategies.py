@@ -4,7 +4,7 @@ from hypothesis import assume
 from qcware_transpile.matching import (GateDef, Instruction, Dialect, Circuit,
                                        Translation, circuit_bit_targets,
                                        circuit_parameter_map)
-from typing import Set, Mapping
+from typing import Set, Mapping, Optional
 import string
 
 gate_names = text(alphabet=list(string.ascii_lowercase),
@@ -163,7 +163,20 @@ def translations(draw,
                  min_length=1,
                  max_length=max_translation_to_length,
                  qubit_ids=just(list(from_circuit_bits)),
-                 parameter_values=sampled_from(list(pm.keys()))))
+                 parameter_values=sampled_from(list(pm.keys())+[1,2,3])))  # type: ignore
     to_circuit_bits = circuit_bit_targets(to_circuit)
     assume(from_circuit_bits == to_circuit_bits)
     return Translation(pattern=from_circuit, replacement=to_circuit)
+
+
+@composite
+def translation_tables(draw, from_dialect: Dialect, to_dialect: Dialect,
+                       max_translations: Optional[int]=None):
+    num_from_gates = len(from_dialect.gate_defs)
+    max_translations = num_from_gates if max_translations is None else min(
+        num_from_gates, max_translations)
+    result = draw(
+        lists(translations(from_dialect, to_dialect),
+              min_size=0,
+              max_size=max_translations))
+    return result

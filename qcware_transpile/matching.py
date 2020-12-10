@@ -128,7 +128,9 @@ def remapped_instruction(qubit_map: Mapping[int, int],
     expressions (probably borrowed from sympy or something similar)
     """
     new_parameters = {
-        k: parameter_map[v]
+        # ignoring type as the following seems to confuse it; v can
+        # either be a key into the parameter map or a tuple
+        k: parameter_map[v] if isinstance(v, tuple) else v # type: ignore
         for k, v in target.parameter_bindings.items()
     }
     new_bit_bindings = [qubit_map[b] for b in target.bit_bindings]
@@ -236,11 +238,17 @@ class Translation(object):
 
     @replacement.validator
     def check_replacement(self, attribute, value):
+        # replacement must address the same bits as pattern
         pattern_bits = circuit_bit_targets(self.pattern)
         replacement_bits = circuit_bit_targets(self.replacement)
         if pattern_bits != replacement_bits:
             raise ValueError(
                 "pattern and replacement must target the same set of bits")
+        # replacement values must either be values or keys into pattern
+        pm_pattern = circuit_parameter_map(self.pattern)
+        pm_replacement = circuit_parameter_map(self.replacement)
+        pattern_keys = [x for x in pm_replacement.values() if isinstance(x, tuple)]
+        assert set(pattern_keys).issubset(set(pm_pattern.keys()))
 
     def __str__(self):
         return "\n->\n".join([str(self.pattern), str(self.replacement)])
