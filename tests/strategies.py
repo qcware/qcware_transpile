@@ -36,9 +36,14 @@ def dialects(draw,
     """
     ngates = draw(integers(min_value=min_gates, max_value=max_gates))
     name = draw(name)
-    gatedefs = draw(lists(gate_defs(), min_size=ngates, max_size=ngates))
+    gatedefs = draw(
+        lists(gate_defs(),
+              min_size=ngates,
+              max_size=ngates,
+              unique_by=lambda x: x.name))
     gatenames = [x.name for x in gatedefs]
-    assume(len(set(gatenames)) == len(gatenames))
+    # juuust make sure there are no duplicate gate names
+    assert len(gatenames) == len(gatedefs)
     return Dialect(name, set(gatedefs))
 
 
@@ -62,25 +67,30 @@ def instructions(draw,
         draw(integers(min_value=min_parameter, max_value=max_parameter))
         for parameter in gatedef.parameter_names
     }
+    # ignoring type error below; we are sampling from a set which
+    # seems to trigger a mypy error, but seems to work just fine
     bit_bindings = draw(
-        lists(sampled_from(qubit_ids),
+        lists(sampled_from(qubit_ids), # type: ignore
               min_size=len(gatedef.qubit_ids),
               max_size=len(gatedef.qubit_ids),
               unique=True))
-    return Instruction(gate_def=gatedef, bit_bindings=bit_bindings, parameter_bindings=parameter_bindings)
+    return Instruction(gate_def=gatedef,
+                       bit_bindings=bit_bindings,
+                       parameter_bindings=parameter_bindings)
 
 
 @composite
 def circuits(draw,
-             dialect: Mapping,
-             min_length=1,
-             max_length=5,
-             min_num_qubits=1,
-             max_num_qubits=5,
-             min_parameter=0,
-             max_parameter=100):
+             dialect: Dialect,
+             min_length: int = 1,
+             max_length: int = 5,
+             min_num_qubits: int = 1,
+             max_num_qubits: int = 5,
+             max_qubit_id: int = 100,
+             min_parameter: int = 0,
+             max_parameter: int = 100):
     qubit_ids = draw(
-        lists(integers(min_value=0, max_value=max_num_qubits - min_num_qubits),
+        lists(integers(min_value=0, max_value=max_qubit_id),
               min_size=min_num_qubits,
               max_size=max_num_qubits,
               unique=True))
@@ -100,6 +110,7 @@ def dialect_and_circuit(draw,
                         max_circuit_length: int = 5,
                         min_num_qubits: int = 3,
                         max_num_qubits: int = 5,
+                        max_qubit_id: int = 100,
                         min_parameter: int = 0,
                         max_parameter: int = 100):
     d = draw(dialects(min_gates=min_gates, max_gates=max_gates))
@@ -112,6 +123,7 @@ def dialect_and_circuit(draw,
                  max_length=max_circuit_length,
                  min_num_qubits=min_num_qubits,
                  max_num_qubits=max_num_qubits,
+                 max_qubit_id=max_qubit_id,
                  min_parameter=min_parameter,
                  max_parameter=max_parameter))
     return (d, c)

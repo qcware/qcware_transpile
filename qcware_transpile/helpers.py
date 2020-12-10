@@ -2,13 +2,18 @@
 Some helper functions
 """
 from typing import Sequence, Mapping
-from dpcontracts import require
-from pyrsistent import pmap
+from dpcontracts import require # type: ignore
+from pyrsistent import pmap, pset
+from typing import TypeVar, Dict
+from pyrsistent.typing import PMap, PSet
+
+A = TypeVar('A')
+B = TypeVar('B')
 
 
 @require("Sequences must be the same length",
          lambda args: len(args.s1) == len(args.s2))
-def map_seq_to_seq(s1: Sequence, s2: Sequence):
+def map_seq_to_seq(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, PSet[B]]:
     """
     Given two sequences of equal lengths, map each
     element of s1 to the set of the corresponding element in s2,
@@ -20,14 +25,16 @@ def map_seq_to_seq(s1: Sequence, s2: Sequence):
     mapping [1,2,1] onto [3,4,5] would result in
     { 1: {3,5}, 2: {4} }
     """
-    result = {}
+    result: dict = {}
     for i in range(len(s1)):
         x = s1[i]
         y = s2[i]
         if x in result:
-            result[x].add(y)
+            result[x] = result[x].add(y)
         else:
-            result[x] = {y}
+            result[x] = pset([y])
+    # we now have a mapping of Any to Set[Any], but since
+    # we'll be reversing this later, we must map all values to PSet[Any]
     return pmap(result)
 
 
@@ -41,16 +48,16 @@ def prepend_index_to_domain(index: int, f: Mapping):
     return pmap({(index, k): v for k, v in f.items()})
 
 
-def reverse_map(f: Mapping):
+def reverse_map(f: Mapping[A, B]) -> PMap[B, PSet[A]]:
     """
     Reverses a mapping such that the values of f
     are mapped to the sets of keys in f corresponding 
     to that value
     """
-    result = {}
+    result: Dict[B, PSet[A]] = {}
     for k, v in f.items():
         if v in result:
-            result[v].add(k)
+            result[v] = result[v].add(k)
         else:
-            result[v] = {k}
+            result[v] = pset([k])
     return pmap(result)
