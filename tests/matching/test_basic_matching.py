@@ -1,15 +1,25 @@
 from hypothesis import given, note
-from hypothesis.strategies import data, lists, integers, dictionaries, tuples, sampled_from
+from hypothesis.strategies import (data, lists, integers, dictionaries, tuples,
+                                   sampled_from)
 from qcware_transpile.matching import (Dialect, Circuit, circuit_bit_bindings,
                                        circuit_bit_binding_signature,
                                        circuit_pattern_matches_target,
                                        circuit_bit_targets,
+                                       circuit_parameter_map,
                                        remapped_instruction)
 from ..strategies import dialect_and_circuit, parameter_names
 from typing import Tuple
 import copy
 import pytest
 import dpcontracts  # type: ignore
+
+
+@given(dialect_and_circuit())
+def test_circuit_parameter_map(dc: Tuple[Dialect, Circuit]):
+    d, c = dc
+    pm = circuit_parameter_map(c)
+    for k, v in pm.items():
+        assert c.instructions[k[0]].parameter_bindings[k[1]] == v
 
 
 @given(dialect_and_circuit())

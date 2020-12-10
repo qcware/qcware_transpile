@@ -1,7 +1,9 @@
 from hypothesis.strategies import (composite, integers, text, lists, sets,
-                                   sampled_from)
+                                   just, sampled_from)
 from hypothesis import assume
-from qcware_transpile.matching import GateDef, Instruction, Dialect, Circuit
+from qcware_transpile.matching import (GateDef, Instruction, Dialect, Circuit,
+                                       Translation, circuit_bit_targets,
+                                       circuit_parameter_map)
 from typing import Set, Mapping
 import string
 
@@ -31,17 +33,22 @@ def gate_defs(draw,
 
 
 @composite
-def dialects(draw, min_gates: int = 3, max_gates: int = 7, name=gate_names):
+def dialects(draw,
+             min_gates: int = 3,
+             max_gates: int = 7,
+             name=gate_names,
+             max_num_bits=3):
     """
     Create a random dialect
     """
     ngates = draw(integers(min_value=min_gates, max_value=max_gates))
     name = draw(name)
     gatedefs = draw(
-        lists(gate_defs(),
-              min_size=ngates,
-              max_size=ngates,
-              unique_by=lambda x: x.name))
+        lists(
+            gate_defs(num_bits=integers(min_value=1, max_value=max_num_bits)),
+            min_size=ngates,
+            max_size=ngates,
+            unique_by=lambda x: x.name))
     gatenames = [x.name for x in gatedefs]
     # juuust make sure there are no duplicate gate names
     assert len(gatenames) == len(gatedefs)
@@ -58,9 +65,11 @@ def instructions(draw,
     (rather than a the gate_defs strategy) so you don't simply get a bunch of
     garbage.
     """
-    gatedef = draw(
-        sampled_from(
-            [g for g in gate_defs if len(g.qubit_ids) <= len(qubit_ids)]))
+    gates_that_fit = [
+        g for g in gate_defs if len(g.qubit_ids) <= len(qubit_ids)
+    ]
+    assume(len(gates_that_fit) > 0)
+    gatedef = draw(sampled_from(gates_that_fit))
     assume(len(gatedef.qubit_ids) <= len(qubit_ids))
     parameter_bindings = {
         parameter: draw(parameter_values)
@@ -80,21 +89,28 @@ def instructions(draw,
 
 
 @composite
+def qubit_ids(draw,
+              min_value: int = 0,
+              max_value: int = 100,
+              min_size: int = 3,
+              max_size: int = 5):
+    return draw(
+        lists(integers(min_value=min_value, max_value=max_value),
+              min_size=min_size,
+              max_size=max_size,
+              unique=True))
+
+
+@composite
 def circuits(draw,
              dialect: Dialect,
              min_length: int = 1,
              max_length: int = 5,
-             min_num_qubits: int = 1,
-             max_num_qubits: int = 5,
-             max_qubit_id: int = 100,
+             qubit_ids=qubit_ids(),
              parameter_values=integers(min_value=0, max_value=100)):
-    qubit_ids = draw(
-        lists(integers(min_value=0, max_value=max_qubit_id),
-              min_size=min_num_qubits,
-              max_size=max_num_qubits,
-              unique=True))
+    _qubit_ids = draw(qubit_ids)
     _instructions = draw(
-        lists(instructions(dialect.gate_defs, qubit_ids, parameter_values),
+        lists(instructions(dialect.gate_defs, _qubit_ids, parameter_values),
               min_size=min_length,
               max_size=max_length))
     return Circuit(dialect_name=dialect.name, instructions=_instructions)
@@ -118,8 +134,36 @@ def dialect_and_circuit(draw,
         circuits(d,
                  min_length=min_circuit_length,
                  max_length=max_circuit_length,
-                 min_num_qubits=min_num_qubits,
-                 max_num_qubits=max_num_qubits,
-                 max_qubit_id=max_qubit_id,
+                 qubit_ids=qubit_ids(min_value=0,
+                                     max_value=max_qubit_id,
+                                     min_size=min_num_qubits,
+                                     max_size=max_num_qubits),
                  parameter_values=parameter_values))
     return (d, c)
+
+
+@composite
+def translations(draw,
+                 from_dialect: Dialect,
+                 to_dialect: Dialect,
+                 max_translation_from_length=2,
+                 max_translation_to_length=2):
+    from_circuit = draw(
+        circuits(from_dialect,
+                 min_length=1,
+                 max_length=max_translation_from_length))
+    from_circuit_bits = circuit_bit_targets(from_circuit)
+    pm = circuit_parameter_map(from_circuit)
+    # since we have to have *some* values to pull from,
+    # assume there are parameters in the source
+    assume(len(pm.keys()) > 0)
+    assert (len(pm.keys()) > 0)
+    to_circuit = draw(
+        circuits(to_dialect,
+                 min_length=1,
+                 max_length=max_translation_to_length,
+                 qubit_ids=just(list(from_circuit_bits)),
+                 parameter_values=sampled_from(list(pm.keys()))))
+    to_circuit_bits = circuit_bit_targets(to_circuit)
+    assume(from_circuit_bits == to_circuit_bits)
+    return Translation(pattern=from_circuit, replacement=to_circuit)

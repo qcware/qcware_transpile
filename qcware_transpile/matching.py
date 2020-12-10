@@ -207,12 +207,21 @@ def circuit_pattern_matches_target(pattern: Circuit, target: Circuit) -> bool:
             == circuit_bit_binding_signature(target)))
 
 
+def circuit_parameter_map(c: Circuit) -> Mapping[Tuple[int, str], Any]:
+    result = {}
+    for index, i in enumerate(c.instructions):
+        for k, v in i.parameter_bindings.items():
+            result[(index, k)] = v
+    return pmap(result)
+
+
 def circuit_bit_targets(c: Circuit) -> PSet[int]:
     """
     The set of bits targeted by this circuit (the set
     of bits this circuit's instructions are bound to)
     """
-    return pset(set().union(*[i.bit_bindings for i in c.instructions])) # type: ignore
+    return pset(set().union(*[i.bit_bindings
+                              for i in c.instructions]))  # type: ignore
 
 
 @attr.s
@@ -227,8 +236,11 @@ class Translation(object):
 
     @replacement.validator
     def check_replacement(self, attribute, value):
-        pattern_bits = circuit_bit_targets(pattern)
-        replacement_bits = circuit_bit_targets(instruction)
+        pattern_bits = circuit_bit_targets(self.pattern)
+        replacement_bits = circuit_bit_targets(self.replacement)
         if pattern_bits != replacement_bits:
             raise ValueError(
                 "pattern and replacement must target the same set of bits")
+
+    def __str__(self):
+        return "\n->\n".join([str(self.pattern), str(self.replacement)])
