@@ -130,7 +130,7 @@ def remapped_instruction(qubit_map: Mapping[int, int],
     new_parameters = {
         # ignoring type as the following seems to confuse it; v can
         # either be a key into the parameter map or a tuple
-        k: parameter_map[v] if isinstance(v, tuple) else v # type: ignore
+        k: parameter_map[v] if isinstance(v, tuple) else v  # type: ignore
         for k, v in target.parameter_bindings.items()
     }
     new_bit_bindings = [qubit_map[b] for b in target.bit_bindings]
@@ -247,8 +247,32 @@ class Translation(object):
         # replacement values must either be values or keys into pattern
         pm_pattern = circuit_parameter_map(self.pattern)
         pm_replacement = circuit_parameter_map(self.replacement)
-        pattern_keys = [x for x in pm_replacement.values() if isinstance(x, tuple)]
+        pattern_keys = [
+            x for x in pm_replacement.values() if isinstance(x, tuple)
+        ]
         assert set(pattern_keys).issubset(set(pm_pattern.keys()))
 
     def __str__(self):
         return "\n->\n".join([str(self.pattern), str(self.replacement)])
+
+
+@require("translation pattern must match circuit", lambda args:
+         circuit_pattern_matches_target(args.translation.pattern, args.target))
+def translation_replace_circuit(translation: Translation,
+                                target: Circuit) -> Circuit:
+    pattern_bits = list(circuit_bit_targets(translation.pattern))
+    target_bits = list(circuit_bit_targets(target))
+    qubit_map = {
+        pattern_bits[i]: target_bits[i]
+        for i in range(len(pattern_bits))
+    }
+    parameter_map = circuit_parameter_map(target)
+    replacement_instructions = [
+        remapped_instruction(qubit_map, parameter_map, i)
+        for i in target.instructions
+    ]
+    # hmm, ignoring the following because it raised a curious
+    # error: Argument "instructions" to "Circuit" has incompatible
+    # type "List[Instruction]"; expected "Iterable[T]"
+    return Circuit(dialect_name=translation.replacement.dialect_name,
+                   instructions=replacement_instructions) # type: ignore
