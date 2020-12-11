@@ -1,12 +1,13 @@
 from hypothesis import given, note
 from hypothesis.strategies import (data, lists, integers, dictionaries, tuples,
                                    sampled_from)
-from qcware_transpile.matching import (Dialect, Circuit, circuit_bit_bindings,
+from qcware_transpile.gates import Dialect
+from qcware_transpile.circuits import (Circuit, circuit_bit_bindings,
                                        circuit_bit_binding_signature,
                                        circuit_pattern_matches_target,
                                        circuit_bit_targets,
-                                       circuit_parameter_map,
-                                       remapped_instruction)
+                                       circuit_parameter_map)
+from qcware_transpile.instructions import (remapped_instruction)
 from ..strategies import dialect_and_circuit, parameter_names
 from typing import Tuple
 import copy

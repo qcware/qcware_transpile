@@ -1,10 +1,12 @@
 from hypothesis.strategies import (composite, integers, text, lists, sets,
                                    just, sampled_from, one_of)
 from hypothesis import assume
-from qcware_transpile.matching import (GateDef, Instruction, Dialect, Circuit,
-                                       Translation, circuit_bit_targets,
+from qcware_transpile.gates import GateDef, Dialect
+from qcware_transpile.instructions import Instruction
+from qcware_transpile.circuits import (Circuit, circuit_bit_targets,
                                        circuit_parameter_map)
-from typing import Set, Mapping, Optional, Tuple, FrozenSet, Callable
+from qcware_transpile.matching import (Translation)
+from typing import Set, Optional, Tuple, FrozenSet, Callable
 import string
 
 gate_names = text(alphabet=list(string.ascii_lowercase),
