@@ -98,7 +98,7 @@ def _is_valid_replacement_parameter_value(v: Any) -> bool:
             or (type(v) in {int, float, complex}))
 
 
-def instruction_is_valid_executable(args):
+def instruction_is_valid_executable(i: Instruction) -> bool:
     """
     An instruction is a valid executable instruction if it is
     fully bound and if all parameter values are concrete
@@ -344,6 +344,8 @@ class Translation(object):
 
 @require("translation pattern must match circuit", lambda args:
          circuit_pattern_matches_target(args.translation.pattern, args.target))
+@require("target circuit must be executable",
+         lambda args: circuit_is_valid_executable(args.circuit))
 def translation_replace_circuit(translation: Translation,
                                 target: Circuit) -> Circuit:
     pattern_bits = list(circuit_bit_targets(translation.pattern))

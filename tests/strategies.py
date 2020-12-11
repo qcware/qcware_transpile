@@ -1,10 +1,10 @@
 from hypothesis.strategies import (composite, integers, text, lists, sets,
-                                   just, sampled_from)
+                                   just, sampled_from, one_of)
 from hypothesis import assume
 from qcware_transpile.matching import (GateDef, Instruction, Dialect, Circuit,
                                        Translation, circuit_bit_targets,
                                        circuit_parameter_map)
-from typing import Set, Mapping, Optional
+from typing import Set, Mapping, Optional, Tuple, FrozenSet, Callable
 import string
 
 gate_names = text(alphabet=list(string.ascii_lowercase),
@@ -142,6 +142,31 @@ def dialect_and_circuit(draw,
     return (d, c)
 
 
+def _mult_by_func(k, v):
+    return lambda pm: pm[k] * v
+
+
+def _add_to_func(k, v):
+    return lambda pm: pm[k] + v
+
+
+@composite
+def replacement_parameter_values(draw,
+                                 pm_keys: Set[Tuple[int, str]],
+                                 values: FrozenSet[int] = frozenset([1, 2, 3]),
+                                 converters: FrozenSet[Callable] = frozenset(
+                                     [_mult_by_func, _add_to_func])):
+    """
+    Returns either a value sampled from values, a PM key sampled from the given keys
+    or a function which adds or multiplies from a given key
+    """
+    v = draw(sampled_from(list(values)))
+    k = draw(sampled_from(list(pm_keys)))
+    return draw(
+        one_of(sampled_from(list(values)), sampled_from(list(pm_keys)),
+               sampled_from(list(converters)).map(lambda f: f(k, v))))
+
+
 @composite
 def translations(draw,
                  from_dialect: Dialect,
@@ -163,15 +188,17 @@ def translations(draw,
                  min_length=1,
                  max_length=max_translation_to_length,
                  qubit_ids=just(list(from_circuit_bits)),
-                 parameter_values=sampled_from(list(pm.keys())+[1,2,3])))  # type: ignore
+                 parameter_values=replacement_parameter_values(pm.keys())))
     to_circuit_bits = circuit_bit_targets(to_circuit)
     assume(from_circuit_bits == to_circuit_bits)
     return Translation(pattern=from_circuit, replacement=to_circuit)
 
 
 @composite
-def translation_tables(draw, from_dialect: Dialect, to_dialect: Dialect,
-                       max_translations: Optional[int]=None):
+def translation_tables(draw,
+                       from_dialect: Dialect,
+                       to_dialect: Dialect,
+                       max_translations: Optional[int] = None):
     num_from_gates = len(from_dialect.gate_defs)
     max_translations = num_from_gates if max_translations is None else min(
         num_from_gates, max_translations)
