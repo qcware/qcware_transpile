@@ -7,7 +7,7 @@ from .helpers import map_seq_to_seq
 from inspect import signature
 
 
-@attr.s()
+@attr.s(frozen=True)
 class Instruction(object):
     """
     An instruction: a gate definition paired with parameter bindings
@@ -46,8 +46,7 @@ def instruction_parameters_are_fully_bound(i: Instruction) -> bool:
     parameters is bound), or a match target (some parameters are bound
     to callables)
     """
-    return all([(k in i.parameter_bindings
-                 and (not callable(i.parameter_bindings[k])))
+    return all([(k in i.parameter_bindings)
                 for k in i.gate_def.parameter_names])
 
 

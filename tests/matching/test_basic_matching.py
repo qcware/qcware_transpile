@@ -1,4 +1,4 @@
-from hypothesis import given, note
+from hypothesis import given, note, HealthCheck, settings
 from hypothesis.strategies import (data, lists, integers, dictionaries, tuples,
                                    sampled_from)
 from qcware_transpile.gates import Dialect
@@ -6,13 +6,19 @@ from qcware_transpile.circuits import (Circuit, circuit_bit_bindings,
                                        circuit_bit_binding_signature,
                                        circuit_pattern_matches_target,
                                        circuit_bit_targets,
-                                       circuit_parameter_map)
-from qcware_transpile.instructions import (remapped_instruction)
-from ..strategies import dialect_and_circuit, parameter_names
+                                       circuit_parameter_map,
+                                       circuit_conforms_to_dialect)
+from qcware_transpile.instructions import (
+    remapped_instruction, _is_valid_replacement_parameter_value)
+from ..strategies import (dialect_and_circuit, parameter_names,
+                          replacement_parameter_values, dialects,
+                          translation_sets, translatable_circuits)
+from qcware_transpile.matching import simple_translate
 from typing import Tuple
 import copy
 import pytest
 import dpcontracts  # type: ignore
+import attr
 
 
 @given(dialect_and_circuit())
@@ -58,21 +64,32 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
     if len(first_instructions_parameters) > 0:
         # change a value of a parameter in the pattern and
         # they should not match
-        p = copy.deepcopy(c)
         key = first_instructions_parameters[0]
-        val = p.instructions[0].parameter_bindings[key] + 1
-        assert val == p.instructions[0].parameter_bindings[key] + 1
-        p.instructions[0].parameter_bindings = p.instructions[
-            0].parameter_bindings.set(key, val)  # type: ignore
+        val = c.instructions[0].parameter_bindings[key] + 1
+        assert val == c.instructions[0].parameter_bindings[key] + 1
+        # ok, I love pyrsistent, but changing nested structures can be painful
+        p = attr.evolve(c,
+                        instructions=c.instructions.set(
+                            0,
+                            attr.evolve(c.instructions[0],
+                                        parameter_bindings=c.instructions[0].
+                                        parameter_bindings.set(key, val))))
+
         assert p.instructions[0].parameter_bindings[key] == val
         assert not circuit_pattern_matches_target(p, c)
 
         # pull a parameter binding out of the pattern and the pattern should
         # still match
-        p = copy.deepcopy(c)
-        p.instructions[0].parameter_bindings = p.instructions[  # type: ignore
-            0].parameter_bindings.discard(
-                list(p.instructions[0].parameter_bindings.keys())[0])
+        p = attr.evolve(
+            c,
+            instructions=c.instructions.set(
+                0,
+                attr.evolve(
+                    c.instructions[0],
+                    parameter_bindings=c.instructions[0].parameter_bindings.
+                    discard(
+                        list(
+                            c.instructions[0].parameter_bindings.keys())[0]))))
         assert circuit_pattern_matches_target(p, c)
 
     # we should raise a precondition violation if the target isn't
@@ -85,17 +102,27 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
 
     # switch a bit binding in the pattern and it shouldn't match
     if len(c.instructions) > 1:
-        p = copy.deepcopy(c)
         bbs = circuit_bit_binding_signature(p)
         # we have to find a case where two bits are bound to the same thing
         candidates = [x for x in bbs if len(x) > 1]
         if len(candidates) > 0:
             bit_to_change = list(candidates[0])[0]
-            p.instructions[bit_to_change[0]].bit_bindings = p.instructions[
-                bit_to_change[0]].bit_bindings.set(bit_to_change[1], 1024)
+            instruction = c.instructions[bit_to_change[0]]
+            bit_bindings = instruction.bit_bindings
+            new_bindings = bit_bindings.set(bit_to_change[1], 1024)
+            new_instruction = attr.evolve(instruction,
+                                          bit_bindings=new_bindings)
+            p = attr.evolve(c,
+                            instructions=c.instructions.set(
+                                bit_to_change[0], new_instruction))
             assert circuit_bit_binding_signature(
                 p) != circuit_bit_binding_signature(c)
             assert not circuit_pattern_matches_target(p, c)
+
+
+@given(replacement_parameter_values([(1, "bob"), (2, "tim")]))
+def test_replacement_parameter_values(v):
+    assert _is_valid_replacement_parameter_value(v)
 
 
 @given(data())
@@ -128,3 +155,31 @@ def test_remap_instruction(data):
     # of values of the parameter map
     assert set(rmi.parameter_bindings.values()).issubset(
         set(parameter_map.values()))
+
+
+# the data generation for this is tricky and the strategies need to be revisited
+# because it takes far too long to create two dialects with a translation table
+# and generatable circuits which can be translated
+@given(data())
+@settings(suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
+def test_translate_circuit(data):
+    d1 = data.draw(dialects())
+    d2 = data.draw(dialects())
+    ts = data.draw(translation_sets(d1, d2))
+    from_circuit = data.draw(translatable_circuits(ts))
+    note("From dialect")
+    note(str(d1))
+    note("To dialect")
+    note(str(d2))
+    note("Translation table")
+    note(str(ts))
+    note("from_circuit")
+    note(str(from_circuit))
+    to_circuit = simple_translate(ts, from_circuit)
+    note("to_circuit")
+    note(str(to_circuit))
+    note("to_circuit gates")
+    note({i.gate_def for i in to_circuit.instructions})
+    note("to_dialect gates")
+    note(d2.gate_defs)
+    assert circuit_conforms_to_dialect(to_circuit, d2)

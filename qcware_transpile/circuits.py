@@ -1,9 +1,10 @@
 import attr
 from typing import Set, Tuple, Sequence, Mapping, Any
 from pyrsistent import pvector, pmap, pset
-from pyrsistent.typing import PMap, PSet
-from dpcontracts import require # type: ignore
+from pyrsistent.typing import PMap, PSet, PVector
+from dpcontracts import require  # type: ignore
 from .helpers import reverse_map
+from .gates import Dialect
 from .instructions import (Instruction, instruction_bit_bindings_map,
                            instruction_parameters_are_fully_bound,
                            instruction_is_valid_executable,
@@ -11,14 +12,19 @@ from .instructions import (Instruction, instruction_bit_bindings_map,
                            instruction_pattern_matches_target)
 
 
-@attr.s()
+@attr.s(frozen=True)
 class Circuit(object):
     dialect_name = attr.ib(type=str)
-    instructions = attr.ib(type=Sequence[Instruction], converter=pvector)
+    instructions = attr.ib(type=PVector, converter=pvector)
 
     def __str__(self):
         return "\n".join([self.dialect_name] +
                          [str(i) for i in self.instructions])
+
+
+def circuit_conforms_to_dialect(c: Circuit, d: Dialect) -> bool:
+    gatedefs_in_circuit = {i.gate_def for i in c.instructions}
+    return gatedefs_in_circuit.issubset(d.gate_defs)
 
 
 def circuit_bit_bindings(circuit: Circuit) -> PMap[Tuple[int, int], Set[int]]:
@@ -81,9 +87,6 @@ def circuit_is_valid_replacement(c: Circuit) -> bool:
     return all([instruction_is_valid_replacement(i) for i in c.instructions])
 
 
-@require("both pattern and target must have the same number of instructions",
-         lambda args: len(args.pattern.instructions) == len(args.target.
-                                                            instructions))
 @require("parameters in target must be fully bound",
          lambda args: circuit_parameters_are_fully_bound(args.target))
 def circuit_pattern_matches_target(pattern: Circuit, target: Circuit) -> bool:
@@ -101,6 +104,14 @@ def circuit_parameter_map(c: Circuit) -> Mapping[Tuple[int, str], Any]:
         for k, v in i.parameter_bindings.items():
             result[(index, k)] = v
     return pmap(result)
+
+
+def circuit_parameter_names(c: Circuit) -> PSet[Tuple[int, str]]:
+    result = set([])
+    for index, i in enumerate(c.instructions):
+        for name in i.gate_def.parameter_names:
+            result.add((index, name))
+    return pset(result)
 
 
 def circuit_bit_targets(c: Circuit) -> PSet[int]:

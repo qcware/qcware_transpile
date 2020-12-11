@@ -17,6 +17,14 @@ class GateDef(object):
     parameter_names = attr.ib(type=Set[str], converter=pset)
     qubit_ids = attr.ib(type=Sequence[int], converter=_qubit_ids)
 
+    def __str__(self):
+        return "".join([self.name, "("]
+                  + [",".join([s for s in self.parameter_names])]
+                  + ["), ("]
+                  + [",".join([str(i) for i in self.qubit_ids])]
+                  + [")"])
+
+
 
 @attr.s()
 class Dialect(object):
@@ -26,4 +34,6 @@ class Dialect(object):
     name = attr.ib(type=str)
     gate_defs = attr.ib(type=PSet, converter=pset)
 
+    def __str__(self):
+        return "\n  ".join([self.name]+[str(g) for g in self.gate_defs])
 

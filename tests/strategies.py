@@ -2,12 +2,16 @@ from hypothesis.strategies import (composite, integers, text, lists, sets,
                                    just, sampled_from, one_of)
 from hypothesis import assume
 from qcware_transpile.gates import GateDef, Dialect
-from qcware_transpile.instructions import Instruction
+from qcware_transpile.instructions import (
+    Instruction, instruction_parameters_are_fully_bound)
 from qcware_transpile.circuits import (Circuit, circuit_bit_targets,
-                                       circuit_parameter_map)
-from qcware_transpile.matching import (Translation)
+                                       circuit_parameter_map,
+                                       circuit_is_valid_replacement)
+from qcware_transpile.matching import (TranslationRule, TranslationSet,
+                                       circuit_is_simply_translatable_by)
 from typing import Set, Optional, Tuple, FrozenSet, Callable
 import string
+import attr
 
 gate_names = text(alphabet=list(string.ascii_lowercase),
                   min_size=4,
@@ -71,8 +75,9 @@ def instructions(draw,
         g for g in gate_defs if len(g.qubit_ids) <= len(qubit_ids)
     ]
     assume(len(gates_that_fit) > 0)
+    assert (len(gates_that_fit) > 0)
     gatedef = draw(sampled_from(gates_that_fit))
-    assume(len(gatedef.qubit_ids) <= len(qubit_ids))
+    assert (len(gatedef.qubit_ids) <= len(qubit_ids))
     parameter_bindings = {
         parameter: draw(parameter_values)
         for parameter in gatedef.parameter_names
@@ -181,6 +186,12 @@ def translations(draw,
                  max_length=max_translation_from_length))
     from_circuit_bits = circuit_bit_targets(from_circuit)
     pm = circuit_parameter_map(from_circuit)
+    # we'd like the source circuit to have no parameter bindings
+    new_instructions = [
+        attr.evolve(i, parameter_bindings={})
+        for i in from_circuit.instructions
+    ]
+    from_circuit = attr.evolve(from_circuit, instructions=new_instructions)
     # since we have to have *some* values to pull from,
     # assume there are parameters in the source
     assume(len(pm.keys()) > 0)
@@ -193,19 +204,40 @@ def translations(draw,
                  parameter_values=replacement_parameter_values(pm.keys())))
     to_circuit_bits = circuit_bit_targets(to_circuit)
     assume(from_circuit_bits == to_circuit_bits)
-    return Translation(pattern=from_circuit, replacement=to_circuit)
+    assert (from_circuit_bits == to_circuit_bits)
+    return TranslationRule(pattern=from_circuit, replacement=to_circuit)
 
 
 @composite
-def translation_tables(draw,
-                       from_dialect: Dialect,
-                       to_dialect: Dialect,
-                       max_translations: Optional[int] = None):
+def translation_sets(draw,
+                     from_dialect: Optional[Dialect] = None,
+                     to_dialect: Optional[Dialect] = None,
+                     min_translations: Optional[int] = None,
+                     max_translations: Optional[int] = None,
+                     max_translation_from_length=1,
+                     max_translation_to_length=2):
+    from_dialect = draw(dialects()) if from_dialect is None else from_dialect
+    to_dialect = draw(dialects()) if to_dialect is None else to_dialect
     num_from_gates = len(from_dialect.gate_defs)
+    min_translations = num_from_gates if min_translations is None else min(
+        num_from_gates, min_translations)
     max_translations = num_from_gates if max_translations is None else min(
         num_from_gates, max_translations)
-    result = draw(
-        lists(translations(from_dialect, to_dialect),
-              min_size=0,
+    rules = draw(
+        lists(translations(
+            from_dialect,
+            to_dialect,
+            max_translation_from_length=max_translation_from_length,
+            max_translation_to_length=max_translation_to_length),
+              min_size=min_translations,
               max_size=max_translations))
-    return result
+    return TranslationSet(from_dialect=from_dialect,
+                          to_dialect=to_dialect,
+                          rules=rules)
+
+
+@composite
+def translatable_circuits(draw, ts: TranslationSet):
+    c = draw(circuits(dialect=ts.from_dialect))
+    assume(circuit_is_simply_translatable_by(c, ts))
+    return c
