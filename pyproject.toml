@@ -9,6 +9,7 @@ python = "^3.8"
 dpcontracts = "^0.6.0"
 pyrsistent = "^0.17.3"
 attrs = "^20.3.0"
+qcware-quasar = { version = "^1.0.2", optional=true }
 
 [tool.poetry.dev-dependencies]
 hypothesis = "^5.41.5"
@@ -16,6 +17,9 @@ pytest = "^6.1.2"
 python-language-server = {extras = ["all"], version = "^0.36.1"}
 mypy = "^0.790"
 watchdog = {extras = ["watchmedo"], version = "^1.0.1"}
+
+[tool.poetry.extras]
+qcware-quasar = ["qcware-quasar"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
