@@ -76,6 +76,9 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
 
     # we should raise a precondition violation if the target isn't
     # fully bound
+    note("***")
+    note(str(c))
+    note(str(p))
     with pytest.raises(dpcontracts.PreconditionError):
         assert not circuit_pattern_matches_target(c, p)
 
