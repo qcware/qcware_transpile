@@ -2,7 +2,7 @@
 Some helper functions
 """
 from typing import Sequence, Mapping
-from dpcontracts import require # type: ignore
+from dpcontracts import require  # type: ignore
 from pyrsistent import pmap, pset
 from typing import TypeVar, Dict
 from pyrsistent.typing import PMap, PSet
@@ -36,6 +36,20 @@ def map_seq_to_seq(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, PSet[B]]:
     # we now have a mapping of Any to Set[Any], but since
     # we'll be reversing this later, we must map all values to PSet[Any]
     return pmap(result)
+
+
+@require("Sequences must be the same length",
+         lambda args: len(args.s1) == len(args.s2))
+@require("Mapping must be unique (len(range)==len(domain))", lambda args: len(
+    set(zip(args.s1, args.s2))) == len(set(args.s1)) == len(set(args.s2)))
+def map_seq_to_seq_unique(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, B]:
+    """
+    Much like map_seq_to_seq, in this case provide a direct
+    mapping between the sequences (s1 and S2 must have unique values and
+    no mapping from s1 to s2 should be multiply defined)
+    """
+    result = pmap({k: v for (k, v) in zip(s1, s2)})
+    return result
 
 
 def prepend_index_to_domain(index: int, f: Mapping):
