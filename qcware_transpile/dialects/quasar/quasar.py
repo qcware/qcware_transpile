@@ -16,7 +16,7 @@ from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
 from inspect import signature
-from dpcontracts import require # type: ignore
+from dpcontracts import require  # type: ignore
 
 __dialect_name__ = "quasar"
 
@@ -41,7 +41,14 @@ def represents_gate(f) -> bool:
         return True
     if (not callable(f)) or is_builtin(f):
         return False
-    sig = signature(f)
+    try:
+        sig = signature(f)
+    # this is genuinely strange.  When this buffer is sent to a
+    # python interpreter, quasar_gatenames_full, etc does just fine;
+    # when it's imported, it blows up without the following because
+    # it raises "ValueError for item <class 'type'>
+    except ValueError:
+        return False
     has_all_defaults = all([
         param.default is not param.empty for param in sig.parameters.values()
     ])
@@ -76,6 +83,7 @@ def gatedef_from_gatefun(name: str, g: Callable) -> GateDef:
     """
     return gatedef_from_gate(name, g())
 
+
 @require("thing must represent a gate",
          lambda args: represents_gate(args.thing))
 def gatedef_from_gatething(name: str, thing: Any) -> GateDef:
@@ -105,24 +113,30 @@ def gate_name_property(thing: Any) -> str:
         return None
 
 
+def quasar_names_full() -> PSet[str]:
+    return pset(dir(Gate))
+
+
 def quasar_gatenames_full() -> PSet[str]:
     """
     The names of verything in the Gate namespace
     """
-    return pset(
+    result = pset(
         {name
          for name in dir(Gate) if represents_gate(getattr(Gate, name))})
+    return result
 
 
 def quasar_gatethings_full() -> PSet:
     """
     All the things in the Gate namespace which represent a gate
     """
-    return pset({
+    result = pset({
         getattr(Gate, name)
         for name in quasar_gatenames_full()
         if represents_gate(getattr(Gate, name))
     })
+    return result
 
 
 def dialect() -> Dialect:
@@ -161,17 +175,18 @@ def native_to_circuit(qc: QuasarCircuit) -> Circuit:
             Instruction(gate_def=gatedef_from_gatething(ntt[gate.name], gate),
                         bit_bindings=qubits,
                         parameter_bindings=gate.parameters))
-    return Circuit(dialect_name=__dialect_name__, instructions=instructions) # type: ignore
+    return Circuit(dialect_name=__dialect_name__,
+                   instructions=instructions)  # type: ignore
 
 
-def quasar_gate_from_instruction(i: Instruction)->Gate:
+def quasar_gate_from_instruction(i: Instruction) -> Gate:
     """
     Create a quasar Gate object from an instruction
     """
     g = getattr(Gate, i.gate_def.name)
     # if g is a Gate, it shouldn't have parameters; if it's a callable,
     # it should.
-    if len(i.parameter_bindings.keys()) > 0 :
+    if len(i.parameter_bindings.keys()) > 0:
         g = g(**i.parameter_bindings)
     return g
 
