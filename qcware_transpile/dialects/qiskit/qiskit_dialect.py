@@ -12,6 +12,7 @@ from pyrsistent import pset
 from pyrsistent.typing import PSet, PMap
 from typing import Tuple, Any, Set
 from inspect import isclass, signature
+import numpy as np  # type: ignore
 
 __dialect_name__ = "qiskit"
 
@@ -148,11 +149,24 @@ def circuit_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     Make a qiskit circuit from a qcware_transpile Circuit
     """
     # qiskit wants the number of qubits first.
-    bits: Set = set().union(*[set(i.bit_bindings) for i in c.instructions])  # type: ignore
-    num_qubits = max(bits)-min(bits)+1
+    bits: Set = set().union(*[set(i.bit_bindings)
+                              for i in c.instructions])  # type: ignore
+    num_qubits = max(bits) - min(bits) + 1
     qr = qiskit.QuantumRegister(num_qubits)
     result = qiskit.QuantumCircuit(qr)
     for instruction in c.instructions:
         g = qiskit_gate_from_instruction(instruction)
         result.append(g, instruction.bit_bindings)
     return result
+
+
+def native_circuits_are_equivalent(c1: qiskit.QuantumCircuit,
+                                   c2: qiskit.QuantumCircuit) -> bool:
+    """
+    Whether or not two circuits are equivalent.  Not having a test_equivalence
+    method here, we brute-force it by evaluating statevectors
+    """
+    backend = qiskit.Aer.get_backend('statevector_simulator')
+    sv1 = qiskit.execute(c1, backend).result().data()['statevector']
+    sv2 = qiskit.execute(c2, backend).result().data()['statevector']
+    return np.isclose(sv1, sv2).all()

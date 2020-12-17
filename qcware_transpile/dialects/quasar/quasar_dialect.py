@@ -197,3 +197,12 @@ def circuit_to_native(c: Circuit) -> QuasarCircuit:
         g = quasar_gate_from_instruction(instruction)
         result.add_gate(g, tuple(instruction.bit_bindings))
     return result
+
+
+def native_circuits_are_equivalent(c1: QuasarCircuit,
+                                   c2: QuasarCircuit) -> bool:
+    """
+    Our own definition of whether two quasar circuits are equivalent;
+    used to test
+    """
+    return QuasarCircuit.test_equivalence(c1, c2)

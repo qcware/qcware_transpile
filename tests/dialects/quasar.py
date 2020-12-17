@@ -5,6 +5,7 @@ from qcware_transpile.dialects.quasar import (native_to_circuit,
 from hypothesis import given
 
 
+
 @given(circuits(min_qubits=1, max_qubits=4, min_length=1, max_length=3))
 def test_conversion(qc):
     c = native_to_circuit(qc)
