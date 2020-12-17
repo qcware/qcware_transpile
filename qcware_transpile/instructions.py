@@ -15,7 +15,9 @@ class Instruction(object):
     """
     gate_def = attr.ib(type=GateDef)
     bit_bindings = attr.ib(type=PVector[int], converter=_qubit_ids)
-    parameter_bindings = attr.ib(type=Mapping, default=pmap(), converter=pmap)
+    parameter_bindings = attr.ib(type=PMap[str, Any],
+                                 default=pmap(),
+                                 converter=pmap)
 
     @parameter_bindings.validator
     def check_parameter_bindings(self, attribute, value):
@@ -171,5 +173,5 @@ def remapped_instruction(qubit_map: Mapping[int, int],
     }
     new_bit_bindings = [qubit_map[b] for b in target.bit_bindings]
     return Instruction(gate_def=target.gate_def,
-                       parameter_bindings=new_parameters,
+                       parameter_bindings=new_parameters,  # type: ignore
                        bit_bindings=new_bit_bindings)

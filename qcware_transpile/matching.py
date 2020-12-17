@@ -106,7 +106,7 @@ def circuit_is_simply_translatable_by(c: Circuit, ts: TranslationSet) -> bool:
     A simple translation is one where each instruction in the circuit is
     addressed by a single-instruction pattern in the translation set
     """
-    subcircuits = [Circuit(c.dialect_name, [i]) for i in c.instructions]
+    subcircuits = [Circuit(c.dialect_name, [i]) for i in c.instructions] # type: ignore
     return all([len(matching_rules(ts, subc)) > 0 for subc in subcircuits])
 
 
@@ -130,7 +130,7 @@ def translationset_replace_circuit(ts: TranslationSet,
 @require("Circuit must be simply translatable by the translation set",
          lambda args: circuit_is_simply_translatable_by(args.c, args.ts))
 def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
-    subcircuits = [Circuit(c.dialect_name, [i]) for i in c.instructions]
+    subcircuits = [Circuit(c.dialect_name, [i]) for i in c.instructions]  # type: ignore
     new_instructions = [
         instruction for sub in subcircuits
         for instruction in translationset_replace_circuit(ts, sub).instructions

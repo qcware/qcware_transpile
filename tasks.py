@@ -11,9 +11,9 @@ def watch_for_mypy(c):
 
 
 @task
-def watch_for_tests(c):
+def watch_for_tests(c, test_path="tests"):
     c.run(
-        "watchmedo shell-command --drop --command='pytest -v tests' --recursive tests qcware_transpile",
+        f"watchmedo shell-command --drop --command='pytest {test_path}' --recursive tests qcware_transpile",
         pty=True
     )
 

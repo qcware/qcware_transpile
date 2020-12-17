@@ -1,6 +1,7 @@
-from hypothesis.strategies import lists, integers, composite, sampled_from, floats, tuples
+from hypothesis.strategies import (lists, integers, composite, sampled_from,
+                                   floats, tuples)
 from quasar.circuit import Gate, Circuit  # type: ignore
-from qcware_transpile.dialects.quasar.quasar import quasar_gatenames_full
+from qcware_transpile.dialects.quasar.quasar_dialect import quasar_gatenames_full
 import inspect
 import math
 

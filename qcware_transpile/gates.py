@@ -1,6 +1,8 @@
-from pyrsistent import pvector, pset, PSet
+from pyrsistent import pvector, pset
+from pyrsistent.typing import PSet
 from typing import Union, Sequence, Set
 import attr
+
 
 def _qubit_ids(qubits: Union[int, Sequence[int]]):
     return pvector(range(qubits)) if isinstance(qubits,
@@ -18,12 +20,10 @@ class GateDef(object):
     qubit_ids = attr.ib(type=Sequence[int], converter=_qubit_ids)
 
     def __str__(self):
-        return "".join([self.name, "("]
-                  + [",".join([s for s in self.parameter_names])]
-                  + ["), ("]
-                  + [",".join([str(i) for i in self.qubit_ids])]
-                  + [")"])
-
+        return "".join([self.name, "("] +
+                       [",".join([s
+                                  for s in self.parameter_names])] + ["), ("] +
+                       [",".join([str(i) for i in self.qubit_ids])] + [")"])
 
 
 @attr.s()
@@ -32,8 +32,7 @@ class Dialect(object):
     A "dialect" -- essentially just a named set of gate definitions
     """
     name = attr.ib(type=str)
-    gate_defs = attr.ib(type=PSet, converter=pset)
+    gate_defs = attr.ib(type=PSet[GateDef], converter=pset)
 
     def __str__(self):
-        return "\n  ".join([self.name]+[str(g) for g in self.gate_defs])
-
+        return "\n  ".join([self.name] + [str(g) for g in self.gate_defs])

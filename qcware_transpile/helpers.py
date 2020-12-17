@@ -47,8 +47,11 @@ def map_seq_to_seq_unique(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, B]:
     Much like map_seq_to_seq, in this case provide a direct
     mapping between the sequences (s1 and S2 must have unique values and
     no mapping from s1 to s2 should be multiply defined)
+
+    The implementation is pretty darn obvious; this definition is mostly for
+    the contracts and typing.
     """
-    result = pmap({k: v for (k, v) in zip(s1, s2)})
+    result = pmap(dict(zip(s1, s2)))
     return result
 
 

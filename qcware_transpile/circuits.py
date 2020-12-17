@@ -15,7 +15,7 @@ from .instructions import (Instruction, instruction_bit_bindings_map,
 @attr.s(frozen=True)
 class Circuit(object):
     dialect_name = attr.ib(type=str)
-    instructions = attr.ib(type=PVector, converter=pvector)
+    instructions = attr.ib(type=PVector[Instruction], converter=pvector)
 
     def __str__(self):
         return "\n".join([self.dialect_name] +
