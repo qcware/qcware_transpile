@@ -1,5 +1,5 @@
 import attr
-from typing import Set, Tuple, Sequence, Mapping, Any
+from typing import Set, Tuple, Sequence, Mapping, Any, Optional
 from pyrsistent import pvector, pmap, pset
 from pyrsistent.typing import PMap, PSet, PVector
 from dpcontracts import require  # type: ignore
@@ -16,6 +16,20 @@ from .instructions import (Instruction, instruction_bit_bindings_map,
 class Circuit(object):
     dialect_name = attr.ib(type=str)
     instructions = attr.ib(type=PVector[Instruction], converter=pvector)
+    qubits = attr.ib(type=PSet[Any], converter=pset)
+
+    @classmethod
+    def from_instructions(cls,
+                          dialect_name: str,
+                          instructions: Sequence[Instruction],
+                          qubits: Optional[Set[Any]] = None):
+        if qubits is None:
+            bits: PSet = pset(set().union(*[
+                set(i.bit_bindings) for i in instructions
+            ]))  # type: ignore
+        return cls(dialect_name=dialect_name,
+                   instructions=instructions,  # type: ignore
+                   qubits=qubits)  # type: ignore
 
     def __str__(self):
         return "\n".join([self.dialect_name] +

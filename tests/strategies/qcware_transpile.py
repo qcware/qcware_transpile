@@ -120,7 +120,7 @@ def circuits(draw,
         lists(instructions(dialect.gate_defs, _qubit_ids, parameter_values),
               min_size=min_length,
               max_size=max_length))
-    return Circuit(dialect_name=dialect.name, instructions=_instructions)
+    return Circuit.from_instructions(dialect_name=dialect.name, instructions=_instructions)
 
 
 @composite

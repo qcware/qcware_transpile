@@ -175,7 +175,7 @@ def native_to_circuit(qc: QuasarCircuit) -> Circuit:
             Instruction(gate_def=gatedef_from_gatething(ntt[gate.name], gate),
                         bit_bindings=qubits,
                         parameter_bindings=gate.parameters))
-    return Circuit(dialect_name=__dialect_name__,
+    return Circuit.from_instructions(dialect_name=__dialect_name__,
                    instructions=instructions)  # type: ignore
 
 

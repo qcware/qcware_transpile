@@ -15,7 +15,6 @@ from ..strategies import (dialect_and_circuit, parameter_names,
                           translation_sets, translatable_circuits)
 from qcware_transpile.matching import simple_translate
 from typing import Tuple
-import copy
 import pytest
 import dpcontracts  # type: ignore
 import attr

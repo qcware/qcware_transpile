@@ -131,8 +131,10 @@ def native_to_circuit(qc: qiskit.QuantumCircuit) -> Circuit:
                 gate_def=gate_def,
                 parameter_bindings=parameter_bindings,  # type: ignore
                 bit_bindings=qubit_bindings))
+    qubits = list(range(qc.num_qubits))
     return Circuit(dialect_name=__dialect_name__,
-                   instructions=instructions)  # type: ignore
+                   instructions=instructions,   # type: ignore
+                   qubits=qubits)
 
 
 def qiskit_gate_from_instruction(i: Instruction):
@@ -149,9 +151,7 @@ def circuit_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     Make a qiskit circuit from a qcware_transpile Circuit
     """
     # qiskit wants the number of qubits first.
-    bits: Set = set().union(*[set(i.bit_bindings)
-                              for i in c.instructions])  # type: ignore
-    num_qubits = max(bits) - min(bits) + 1
+    num_qubits = max(c.qubits) - min(c.qubits) + 1
     qr = qiskit.QuantumRegister(num_qubits)
     result = qiskit.QuantumCircuit(qr)
     for instruction in c.instructions:

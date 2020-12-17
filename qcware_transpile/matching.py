@@ -66,13 +66,14 @@ def translation_replace_circuit(translation: TranslationRule,
     parameter_map = circuit_parameter_map(target)
     replacement_instructions = [
         remapped_instruction(qubit_map, parameter_map, i)
-        for i in translation.replacement.instructions # was target
+        for i in translation.replacement.instructions  # was target
     ]
     # hmm, ignoring the following because it raised a curious
     # error: Argument "instructions" to "Circuit" has incompatible
     # type "List[Instruction]"; expected "Iterable[T]"
-    return Circuit(dialect_name=translation.replacement.dialect_name,
-                   instructions=replacement_instructions)  # type: ignore
+    return Circuit.from_instructions(
+        dialect_name=translation.replacement.dialect_name,
+        instructions=replacement_instructions)  # type: ignore
 
 
 @attr.s
@@ -106,7 +107,8 @@ def circuit_is_simply_translatable_by(c: Circuit, ts: TranslationSet) -> bool:
     A simple translation is one where each instruction in the circuit is
     addressed by a single-instruction pattern in the translation set
     """
-    subcircuits = [Circuit(c.dialect_name, [i]) for i in c.instructions] # type: ignore
+    subcircuits = [Circuit.from_instructions(c.dialect_name, [i])
+                   for i in c.instructions]  # type: ignore
     return all([len(matching_rules(ts, subc)) > 0 for subc in subcircuits])
 
 
@@ -130,10 +132,13 @@ def translationset_replace_circuit(ts: TranslationSet,
 @require("Circuit must be simply translatable by the translation set",
          lambda args: circuit_is_simply_translatable_by(args.c, args.ts))
 def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
-    subcircuits = [Circuit(c.dialect_name, [i]) for i in c.instructions]  # type: ignore
+    subcircuits = [
+        Circuit.from_instructions(c.dialect_name, [i]) for i in c.instructions
+    ]  # type: ignore
     new_instructions = [
         instruction for sub in subcircuits
         for instruction in translationset_replace_circuit(ts, sub).instructions
         for sub in subcircuits
     ]
-    return Circuit(dialect_name=c.dialect_name, instructions=new_instructions)
+    return Circuit.from_instructions(dialect_name=c.dialect_name,
+                                     instructions=new_instructions)

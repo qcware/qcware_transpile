@@ -40,8 +40,8 @@ def map_seq_to_seq(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, PSet[B]]:
 
 @require("Sequences must be the same length",
          lambda args: len(args.s1) == len(args.s2))
-@require("Mapping must be unique (len(range)==len(domain))", lambda args: len(
-    set(zip(args.s1, args.s2))) == len(set(args.s1)) == len(set(args.s2)))
+@require("Mapping must be unique (no multiple values in domain)",
+         lambda args: len(set(args.s1)) == len(args.s1))
 def map_seq_to_seq_unique(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, B]:
     """
     Much like map_seq_to_seq, in this case provide a direct
