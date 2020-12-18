@@ -1,8 +1,3 @@
-"""
-Functions and structures involved with extracting a usable
-Dialect from quasar, and converting to and from Quasar
-Circuits (and possibly returns)
-"""
 from quasar.circuit import Gate  # type: ignore
 from quasar.circuit import Circuit as QuasarCircuit  # type: ignore
 from pyrsistent import pset

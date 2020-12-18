@@ -1,8 +1,3 @@
-"""
-Functions and structures to programatically construct a dialect
-from inspection of the qiskit library
-"""
-
 import qiskit  # type: ignore
 from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit

@@ -1,5 +1,7 @@
 from pyrsistent import pvector, pset
 from pyrsistent.typing import PSet
+from dpcontracts import require  # type: ignore
+from qcware_transpile.helpers import exists_in
 from typing import Union, Sequence, Set
 import attr
 
@@ -36,3 +38,11 @@ class Dialect(object):
 
     def __str__(self):
         return "\n  ".join([self.name] + [str(g) for g in self.gate_defs])
+
+    def has_gate_named(self, name: str) -> bool:
+        return exists_in(self. gate_defs, lambda x: x.name == name)
+
+    @require("Dialect must have gate to return it",
+             lambda args: args.self.has_gate_named(args.name))
+    def gate_named(self, name: str) -> GateDef:
+        return [x for x in self.gate_defs if x.name == name][0]

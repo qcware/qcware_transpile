@@ -5,14 +5,14 @@ from dpcontracts import require, ensure  # type: ignore
 import attr
 from pyrsistent.typing import PSet
 from pyrsistent import pset
-from typing import Callable, Optional
-from .instructions import Instruction, remapped_instruction
-from .gates import Dialect, GateDef
-from .circuits import (Circuit, circuit_bit_targets,
-                       circuit_is_valid_replacement,
-                       circuit_is_valid_executable,
-                       circuit_pattern_matches_target, circuit_parameter_map,
-                       circuit_conforms_to_dialect, circuit_parameter_names)
+from typing import Callable, Optional, Tuple
+from qcware_transpile.instructions import Instruction, remapped_instruction
+from qcware_transpile.gates import Dialect, GateDef
+from qcware_transpile.circuits import (
+    Circuit, circuit_bit_targets, circuit_is_valid_replacement,
+    circuit_is_valid_executable, circuit_pattern_matches_target,
+    circuit_parameter_map, circuit_conforms_to_dialect,
+    circuit_parameter_names)
 
 
 @attr.s(frozen=True)
@@ -100,6 +100,19 @@ def trivial_rule(dialect_a: Dialect,
                                           [pattern_instruction]),
         replacement=Circuit.from_instructions(dialect_b.name,
                                               [target_instruction]))
+
+
+def trivial_rules(dialect_a: Dialect, dialect_b: Dialect,
+                  name_tuples: Tuple[str, str]) -> PSet[TranslationRule]:
+    """
+    Create a set of trivial rules without any parameter translation
+    by pairs of gate names
+    """
+    return pset({
+        trivial_rule(dialect_a, dialect_a.gate_named(t[0]), dialect_b,
+                     dialect_b.gate_named(t[1]))
+        for t in name_tuples
+    })
 
 
 @require("translation pattern must match circuit", lambda args:
@@ -202,5 +215,28 @@ def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
         for instruction in translationset_replace_circuit(ts, sub).instructions
         for sub in subcircuits
     ]
-    return Circuit.from_instructions(dialect_name=c.dialect_name,
+    return Circuit.from_instructions(dialect_name=ts.to_dialect.name,
                                      instructions=new_instructions)
+
+
+def translated_gates(tset: TranslationSet) -> PSet[GateDef]:
+    """
+    Given a translation set, give a list of GateDefs which
+    are translated.  This only matches rules in the TranslationSet
+    which are one instruction long and have no bound
+    parameters!
+    """
+    def is_simple_pattern(x: Circuit):
+        return len(x.instructions) == 1 and len(
+            x.instructions[0].parameter_bindings) == 0
+
+    return pset({x.pattern.instructions[0].gate_def for x in tset.rules})
+
+
+def untranslated_gates(tset: TranslationSet) -> PSet[GateDef]:
+    """
+    Returns the set of GateDefs in the TranslationSet's 'from_dialect'
+    which do not have a corresponding simple rule in the TranslationSet's
+    rules
+    """
+    return pset(tset.from_dialect.gate_defs - translated_gates(tset))

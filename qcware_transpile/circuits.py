@@ -38,7 +38,7 @@ class Circuit(object):
 
 def circuit_conforms_to_dialect(c: Circuit, d: Dialect) -> bool:
     gatedefs_in_circuit = {i.gate_def for i in c.instructions}
-    return gatedefs_in_circuit.issubset(d.gate_defs)
+    return c.dialect_name == d.name and gatedefs_in_circuit.issubset(d.gate_defs)
 
 
 def circuit_bit_bindings(circuit: Circuit) -> PMap[Tuple[int, int], Set[int]]:
