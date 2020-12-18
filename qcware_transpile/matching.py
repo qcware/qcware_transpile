@@ -111,7 +111,7 @@ def trivial_rules(dialect_a: Dialect, dialect_b: Dialect,
     """
     return pset({
         trivial_rule(dialect_a, dialect_a.gate_named(t[0]), dialect_b,
-                     dialect_b.gate_named(t[1]))
+                     dialect_b.gate_named(t[1]), None if len(t) == 2 else t[2])
         for t in name_tuples
     })
 
