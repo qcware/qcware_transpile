@@ -21,11 +21,16 @@ def gates(draw, gate_list=sorted(quasar_gatenames_full())):
 
 
 @composite
-def circuits(draw, min_qubits, max_qubits, min_length, max_length, gates=gates):
+def circuits(draw,
+             min_qubits,
+             max_qubits,
+             min_length,
+             max_length,
+             gates=gates()):
     length = draw(integers(min_value=min_length, max_value=max_length))
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
     circuit_gates = draw(
-        lists(gates(), min_size=length, max_size=length).filter(
+        lists(gates, min_size=length, max_size=length).filter(
             lambda x: all([y.nqubit <= num_qubits for y in x])))
     result = Circuit()
     for gate in circuit_gates:

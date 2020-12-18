@@ -1,4 +1,5 @@
 import attr
+import itertools
 from typing import Set, Tuple, Sequence, Mapping, Any, Optional
 from pyrsistent import pvector, pmap, pset
 from pyrsistent.typing import PMap, PSet, PVector
@@ -24,21 +25,25 @@ class Circuit(object):
                           instructions: Sequence[Instruction],
                           qubits: Optional[Set[Any]] = None):
         if qubits is None:
-            bits: PSet = pset(set().union(*[
-                set(i.bit_bindings) for i in instructions
-            ]))  # type: ignore
-        return cls(dialect_name=dialect_name,
-                   instructions=instructions,  # type: ignore
-                   qubits=qubits)  # type: ignore
+            new_qubits: PSet = pset(
+                set().union(*[set(i.bit_bindings)
+                              for i in instructions]))  # type: ignore
+        else:
+            new_qubits = pset(qubits)
+        return cls(
+            dialect_name=dialect_name,
+            instructions=instructions,  # type: ignore
+            qubits=new_qubits)  # type: ignore
 
     def __str__(self):
-        return "\n".join([self.dialect_name] +
+        return "\n".join([self.dialect_name] + [f"Qubits: {self.qubits}"] +
                          [str(i) for i in self.instructions])
 
 
 def circuit_conforms_to_dialect(c: Circuit, d: Dialect) -> bool:
     gatedefs_in_circuit = {i.gate_def for i in c.instructions}
-    return c.dialect_name == d.name and gatedefs_in_circuit.issubset(d.gate_defs)
+    return c.dialect_name == d.name and gatedefs_in_circuit.issubset(
+        d.gate_defs)
 
 
 def circuit_bit_bindings(circuit: Circuit) -> PMap[Tuple[int, int], Set[int]]:
@@ -128,10 +133,14 @@ def circuit_parameter_names(c: Circuit) -> PSet[Tuple[int, str]]:
     return pset(result)
 
 
-def circuit_bit_targets(c: Circuit) -> PSet[int]:
+def circuit_bit_targets(c: Circuit) -> PVector[int]:
     """
-    The set of bits targeted by this circuit (the set
-    of bits this circuit's instructions are bound to)
+    an ordered list of bits addressed by bit bindings, so for
+    H(0), CX(0,1) you should get [0,0,1]
+
+    Circuits with the same bit binding signature should have a 
+    1:1 correspondence with their circuit_bit_targets
     """
-    return pset(set().union(*[i.bit_bindings
-                              for i in c.instructions]))  # type: ignore
+    return pvector(
+        itertools.chain.from_iterable([i.bit_bindings for i in c.instructions
+                                       ]))  # type: ignore

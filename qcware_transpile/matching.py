@@ -6,6 +6,7 @@ import attr
 from pyrsistent.typing import PSet
 from pyrsistent import pset
 from typing import Callable, Optional, Tuple
+from qcware_transpile.helpers import map_seq_to_seq_unique
 from qcware_transpile.instructions import Instruction, remapped_instruction
 from qcware_transpile.gates import Dialect, GateDef
 from qcware_transpile.circuits import (
@@ -123,10 +124,13 @@ def translation_replace_circuit(translation: TranslationRule,
                                 target: Circuit) -> Circuit:
     pattern_bits = list(circuit_bit_targets(translation.pattern))
     target_bits = list(circuit_bit_targets(target))
-    qubit_map = {
-        pattern_bits[i]: target_bits[i]
-        for i in range(len(pattern_bits))
-    }
+    # okay, at this point the pattern and target bits could have redundant pairs,
+    # but should not have mixed pairs, ie [1,2,1,0] [3,2,3,1] is ok, but
+    # [1,2,1,0] [3,2,2,0] is not ok because 1 maps to 2 different things
+    bitpairs = set(zip(pattern_bits, target_bits))
+    pattern_bits = [x[0] for x in bitpairs]
+    target_bits = [x[1] for x in bitpairs]
+    qubit_map = map_seq_to_seq_unique(pattern_bits, target_bits)
     parameter_map = circuit_parameter_map(target)
     replacement_instructions = [
         remapped_instruction(qubit_map, parameter_map, i)
@@ -213,7 +217,6 @@ def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
     new_instructions = [
         instruction for sub in subcircuits
         for instruction in translationset_replace_circuit(ts, sub).instructions
-        for sub in subcircuits
     ]
     return Circuit.from_instructions(dialect_name=ts.to_dialect.name,
                                      instructions=new_instructions)

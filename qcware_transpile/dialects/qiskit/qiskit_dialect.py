@@ -114,6 +114,7 @@ def native_to_circuit(qc: qiskit.QuantumCircuit) -> Circuit:
     instructions = []
     d = dialect()
     valid_names = [g.name for g in d.gate_defs]
+    qc = qc.reverse_bits()
     for (instruction, qubits, cbits) in qc.data:
         assert (len(cbits) == 0)
         gate_name = instruction.__class__.__name__
@@ -152,6 +153,7 @@ def circuit_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     for instruction in c.instructions:
         g = qiskit_gate_from_instruction(instruction)
         result.append(g, instruction.bit_bindings)
+    result = result.reverse_bits()
     return result
 
 
