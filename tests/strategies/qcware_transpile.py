@@ -28,14 +28,18 @@ def gate_defs(draw,
                          min_size=1,
                          max_size=3),
               num_bits=integers(min_value=1, max_value=3),
-              parameter_names=parameter_names):
+              parameter_names=parameter_names,
+              min_num_parameters=0,
+              max_num_parameters=3):
     """
     Create a random gate definition; used to create arbitrary dialects
     """
     return GateDef(name=draw(names),
                    qubit_ids=draw(num_bits),
                    parameter_names=draw(
-                       sets(parameter_names, min_size=1, max_size=3)))
+                       sets(parameter_names,
+                            min_size=min_num_parameters,
+                            max_size=max_num_parameters)))
 
 
 @composite
@@ -43,7 +47,9 @@ def dialects(draw,
              min_gates: int = 3,
              max_gates: int = 7,
              name=gate_names,
-             max_num_bits=3):
+             max_num_bits=3,
+             min_num_parameters=0,
+             max_num_parameters=3):
     """
     Create a random dialect
     """
@@ -120,7 +126,8 @@ def circuits(draw,
         lists(instructions(dialect.gate_defs, _qubit_ids, parameter_values),
               min_size=min_length,
               max_size=max_length))
-    return Circuit.from_instructions(dialect_name=dialect.name, instructions=_instructions)
+    return Circuit.from_instructions(dialect_name=dialect.name,
+                                     instructions=_instructions)
 
 
 @composite

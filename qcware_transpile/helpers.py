@@ -4,11 +4,12 @@ Some helper functions
 from typing import Sequence, Mapping
 from dpcontracts import require  # type: ignore
 from pyrsistent import pmap, pset
-from typing import TypeVar, Dict
+from typing import TypeVar, Dict, Iterable, Callable
 from pyrsistent.typing import PMap, PSet
 
 A = TypeVar('A')
 B = TypeVar('B')
+T = TypeVar('T')
 
 
 @require("Sequences must be the same length",
@@ -78,3 +79,13 @@ def reverse_map(f: Mapping[A, B]) -> PMap[B, PSet[A]]:
         else:
             result[v] = pset([k])
     return pmap(result)
+
+
+def exists_in(i: Iterable[T], pred: Callable[[T], bool]) -> bool:
+    """
+    Checks for any item in i such that pred(i) is true
+    """
+    for x in i:
+        if pred(x):
+            return True
+    return False

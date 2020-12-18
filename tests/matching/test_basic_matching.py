@@ -1,4 +1,4 @@
-from hypothesis import given, note, HealthCheck, settings
+from hypothesis import given, note, HealthCheck, settings, assume
 from hypothesis.strategies import (data, lists, integers, dictionaries, tuples,
                                    sampled_from)
 from qcware_transpile.gates import Dialect
@@ -10,10 +10,11 @@ from qcware_transpile.circuits import (Circuit, circuit_bit_bindings,
                                        circuit_conforms_to_dialect)
 from qcware_transpile.instructions import (
     remapped_instruction, _is_valid_replacement_parameter_value)
+from qcware_transpile.helpers import exists_in
 from ..strategies import (dialect_and_circuit, parameter_names,
                           replacement_parameter_values, dialects,
                           translation_sets, translatable_circuits)
-from qcware_transpile.matching import simple_translate
+from qcware_transpile.matching import simple_translate, trivial_rule
 from typing import Tuple
 import pytest
 import dpcontracts  # type: ignore
@@ -89,19 +90,19 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
                     discard(
                         list(
                             c.instructions[0].parameter_bindings.keys())[0]))))
+        note("***")
+        note(str(c))
+        note(str(p))
         assert circuit_pattern_matches_target(p, c)
 
-    # we should raise a precondition violation if the target isn't
-    # fully bound
-    note("***")
-    note(str(c))
-    note(str(p))
-    with pytest.raises(dpcontracts.PreconditionError):
-        assert not circuit_pattern_matches_target(c, p)
+        # we should raise a precondition violation if the target isn't
+        # fully bound
+        with pytest.raises(dpcontracts.PreconditionError):
+            assert not circuit_pattern_matches_target(c, p)
 
     # switch a bit binding in the pattern and it shouldn't match
     if len(c.instructions) > 1:
-        bbs = circuit_bit_binding_signature(p)
+        bbs = circuit_bit_binding_signature(c)
         # we have to find a case where two bits are bound to the same thing
         candidates = [x for x in bbs if len(x) > 1]
         if len(candidates) > 0:
@@ -160,7 +161,8 @@ def test_remap_instruction(data):
 # because it takes far too long to create two dialects with a translation table
 # and generatable circuits which can be translated
 @given(data())
-@settings(suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
+@settings(
+    suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
 def test_translate_circuit(data):
     d1 = data.draw(dialects())
     d2 = data.draw(dialects())
@@ -182,3 +184,31 @@ def test_translate_circuit(data):
     note("to_dialect gates")
     note(d2.gate_defs)
     assert circuit_conforms_to_dialect(to_circuit, d2)
+
+
+@given(data=data(),
+       num_parameters=integers(min_value=0, max_value=1),
+       num_bits=integers(min_value=1, max_value=3))
+def test_trivial_rule(data, num_parameters, num_bits):
+    """
+    This is honestly a bit more of a smoke test than anything else; it
+    exercises the pre- and post-conditions for testing
+    """
+    dialect_a = data.draw(
+        dialects(min_num_parameters=num_parameters,
+                 max_num_parameters=num_parameters,
+                 max_num_bits=num_bits))
+    dialect_b = data.draw(
+        dialects(min_num_parameters=num_parameters,
+                 max_num_parameters=num_parameters,
+                 max_num_bits=num_bits))
+
+    def simple_pred(x):
+        return len(x.parameter_names) == num_parameters and len(
+            x.qubit_ids) == num_bits
+
+    assume(exists_in(dialect_a.gate_defs, simple_pred))
+    assume(exists_in(dialect_b.gate_defs, simple_pred))
+    gate_def_a = list(filter(simple_pred, dialect_a.gate_defs))[0]
+    gate_def_b = list(filter(simple_pred, dialect_b.gate_defs))[0]
+    rule = trivial_rule(dialect_a, gate_def_a, dialect_b, gate_def_b)

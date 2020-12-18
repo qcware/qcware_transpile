@@ -1,17 +1,18 @@
 """
 Files for defining gates, gate definitions, and the like
 """
-from dpcontracts import require  # type: ignore
+from dpcontracts import require, ensure  # type: ignore
 import attr
 from pyrsistent.typing import PSet
 from pyrsistent import pset
-from .instructions import remapped_instruction
-from .gates import Dialect
+from typing import Callable, Optional
+from .instructions import Instruction, remapped_instruction
+from .gates import Dialect, GateDef
 from .circuits import (Circuit, circuit_bit_targets,
                        circuit_is_valid_replacement,
                        circuit_is_valid_executable,
                        circuit_pattern_matches_target, circuit_parameter_map,
-                       circuit_parameter_names)
+                       circuit_conforms_to_dialect, circuit_parameter_names)
 
 
 @attr.s(frozen=True)
@@ -49,6 +50,56 @@ class TranslationRule(object):
 
     def __str__(self):
         return "\n->\n".join([str(self.pattern), str(self.replacement)])
+
+
+@require("Gates must have the same number of qubits",
+         lambda args: len(args.a.qubit_ids) == len(args.b.qubit_ids))
+@require("Only one parameter is allowed for trivial bindings",
+         lambda args: len(args.a.parameter_names) == len(
+             args.b.parameter_names) and len(args.a.parameter_names) <= 1)
+@require("Argument gatedefs must belong to referenced dialects",
+         lambda args: args.a in args.dialect_a.gate_defs and args.b in args.
+         dialect_b.gate_defs)
+def trivial_rule(dialect_a: Dialect,
+                 a: GateDef,
+                 dialect_b: Dialect,
+                 b: GateDef,
+                 f: Optional[Callable] = None) -> TranslationRule:
+    """
+    Create a trivial translation rule between two gate definitions,
+    optionally with a translation lambda for the single parameter.  
+    Unlike the target translation function, which takes the single
+    parameter of a parameter map (which one would dereference for 
+    actual arguments, ie "lambda pm: pm[(0,'theta')]*2") this takes
+    a single value and returns a modified value, presuming that there
+    single parameter shared by both gates is the same type
+
+    This requires two gatedefs with the same number of qubits and
+    up to one parameter.  Beyond that you'll have to be a bit more clever.
+    """
+    num_qubits = len(a.qubit_ids)
+    pattern_instruction = Instruction(gate_def=a,
+                                      bit_bindings=range(num_qubits),
+                                      parameter_bindings={})
+    if len(a.parameter_names) == 1:
+        a_parameter_name = list(a.parameter_names)[0]
+        b_parameter_name = list(b.parameter_names)[0]
+
+        b_parameter_target = (0, a_parameter_name)
+        b_parameter_value = b_parameter_target if f is None else lambda pm: f(
+            pm[b_parameter_target])
+        parameter_bindings = {b_parameter_name: b_parameter_value}
+    else:
+        parameter_bindings = {}
+    target_instruction = Instruction(
+        gate_def=b,
+        bit_bindings=range(num_qubits),
+        parameter_bindings=parameter_bindings)  # type: ignore
+    return TranslationRule(
+        pattern=Circuit.from_instructions(dialect_a.name,
+                                          [pattern_instruction]),
+        replacement=Circuit.from_instructions(dialect_b.name,
+                                              [target_instruction]))
 
 
 @require("translation pattern must match circuit", lambda args:
@@ -107,8 +158,9 @@ def circuit_is_simply_translatable_by(c: Circuit, ts: TranslationSet) -> bool:
     A simple translation is one where each instruction in the circuit is
     addressed by a single-instruction pattern in the translation set
     """
-    subcircuits = [Circuit.from_instructions(c.dialect_name, [i])
-                   for i in c.instructions]  # type: ignore
+    subcircuits = [
+        Circuit.from_instructions(c.dialect_name, [i]) for i in c.instructions
+    ]  # type: ignore
     return all([len(matching_rules(ts, subc)) > 0 for subc in subcircuits])
 
 
@@ -128,10 +180,20 @@ def translationset_replace_circuit(ts: TranslationSet,
 
 
 @require("Circuit must belong to the translation set 'from' dialect",
-         lambda args: args.c.dialect_name == args.ts.from_dialect.name)
+         lambda args: circuit_conforms_to_dialect(args.c, args.ts.from_dialect)
+         )
 @require("Circuit must be simply translatable by the translation set",
          lambda args: circuit_is_simply_translatable_by(args.c, args.ts))
+@ensure("Result must belong to the translation set 'to' dialect",
+        lambda args, result: circuit_conforms_to_dialect(
+            result, args.ts.to_dialect))
 def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
+    """
+    Given a simple translation set ts, breaks c into subcircuits
+    of length 1 (ie individual instructions), translates each instruction,
+    and assembles the result into a circuit belonging to the target
+    dialect
+    """
     subcircuits = [
         Circuit.from_instructions(c.dialect_name, [i]) for i in c.instructions
     ]  # type: ignore
