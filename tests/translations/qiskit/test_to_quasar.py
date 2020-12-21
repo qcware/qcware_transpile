@@ -35,4 +35,5 @@ def test_translate_qiskit_to_quasar(qiskit_circuit):
     note(str(quasar_native_circuit))
     sv_quasar = quasar_statevector(quasar_native_circuit)
     sv_qiskit = qiskit_statevector(qiskit_circuit)
-    assert(numpy.isclose(sv_qiskit, sv_quasar).all())
+    # this can fail with the default atol
+    assert(numpy.allclose(sv_qiskit, sv_quasar))
