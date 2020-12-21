@@ -97,7 +97,7 @@ def dialect() -> Dialect:
     """
     The qiskit dialect
     """
-    return Dialect(name=__name__, gate_defs=gate_defs())  # type: ignore
+    return Dialect(name=__dialect_name__, gate_defs=gate_defs())  # type: ignore
 
 
 def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:

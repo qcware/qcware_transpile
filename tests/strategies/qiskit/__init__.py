@@ -24,13 +24,13 @@ def gates(draw, gate_list=sorted(dialect().gate_defs)):
 
 
 @composite
-def circuits(draw, min_qubits, max_qubits, min_length, max_length):
+def circuits(draw, min_qubits, max_qubits, min_length, max_length, gates=gates()):
     length = draw(integers(min_value=min_length, max_value=max_length))
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
     qr = qiskit.QuantumRegister(num_qubits)
 
     circuit_gates = draw(
-        lists(gates(), min_size=length, max_size=length).filter(
+        lists(gates, min_size=length, max_size=length).filter(
             lambda x: all([y.num_qubits <= num_qubits for y in x])))
 
     result = qiskit.QuantumCircuit(qr)
