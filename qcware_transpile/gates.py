@@ -1,5 +1,5 @@
-from pyrsistent import pvector, pset
-from pyrsistent.typing import PSet
+from pyrsistent import pvector, pset, pmap
+from pyrsistent.typing import PSet, PMap
 from dpcontracts import require  # type: ignore
 from qcware_transpile.helpers import exists_in
 from typing import Union, Sequence, Set
@@ -28,21 +28,29 @@ class GateDef(object):
                        [",".join([str(i) for i in self.qubit_ids])] + [")"])
 
 
-@attr.s()
+@attr.s(frozen=True)
 class Dialect(object):
     """
     A "dialect" -- essentially just a named set of gate definitions
     """
     name = attr.ib(type=str)
     gate_defs = attr.ib(type=PSet[GateDef], converter=pset)
+    gate_map = attr.ib(type=PMap[str, GateDef], init=False)
+
+    def __attrs_post_init__(self):
+        # build an index by gate name to speed things up a bit
+        gate_map: PMap[str,
+                       GateDef] = pmap({g.name: g
+                                        for g in self.gate_defs})
+        object.__setattr__(self, "gate_map", gate_map)
 
     def __str__(self):
         return "\n  ".join([self.name] + [str(g) for g in self.gate_defs])
 
     def has_gate_named(self, name: str) -> bool:
-        return exists_in(self. gate_defs, lambda x: x.name == name)
+        return name in self.gate_map
 
     @require("Dialect must have gate to return it",
              lambda args: args.self.has_gate_named(args.name))
     def gate_named(self, name: str) -> GateDef:
-        return [x for x in self.gate_defs if x.name == name][0]
+        return self.gate_map[name]

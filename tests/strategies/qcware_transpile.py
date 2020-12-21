@@ -120,10 +120,12 @@ def circuits(draw,
              min_length: int = 1,
              max_length: int = 5,
              qubit_ids=qubit_ids(),
+             gate_defs: Optional[Set] = None,
              parameter_values=integers(min_value=0, max_value=100)):
     _qubit_ids = draw(qubit_ids)
+    gate_defs = dialect.gate_defs if gate_defs is None else gate_defs  # type: ignore
     _instructions = draw(
-        lists(instructions(dialect.gate_defs, _qubit_ids, parameter_values),
+        lists(instructions(gate_defs, _qubit_ids, parameter_values),
               min_size=min_length,
               max_size=max_length))
     return Circuit.from_instructions(dialect_name=dialect.name,
@@ -245,6 +247,8 @@ def translation_sets(draw,
 
 @composite
 def translatable_circuits(draw, ts: TranslationSet):
-    c = draw(circuits(dialect=ts.from_dialect))
+    one_gate_rules = {r for r in ts.rules if len(r.pattern.instructions) == 1}
+    gates = {r.pattern.instructions[0].gate_def for r in one_gate_rules}
+    c = draw(circuits(dialect=ts.from_dialect, gate_defs=gates))
     assume(circuit_is_simply_translatable_by(c, ts))
     return c
