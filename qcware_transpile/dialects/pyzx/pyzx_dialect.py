@@ -7,20 +7,27 @@ from pyrsistent import pset
 from pyrsistent.typing import PSet, PMap
 from typing import Tuple, Any, Set, Sequence
 from inspect import isclass, signature
-import numpy as np  # type: ignore
+import numpy as np
 
 __dialect_name__ = "pyzx"
+
+# these gates don't translate yet as we don't have the concept of
+# variable-qubit gates or no-qubit instructions
+_do_not_include_instructions = {"ParityPhase", "InitAncilla", "PostSelect"}
 
 
 def pyzx_gatethings() -> PSet[Any]:
     """
-    The set of all things in qiskit which represent a gate
+    The set of all things in qiskit which represent a gate.  We
+    don't include the ParityPhase gate because it handles variable
+    numbers of qubits.
     """
     possible_things = [
-        x for x in pyzx.circuit.gates.__dict__.values() if isclass(x)
-        and issubclass(x, pyzx.circuit.Gate) and x != pyzx.circuit.Gate
+        x for x in pyzx.circuit.gates.__dict__.values()
+        if isclass(x) and issubclass(x, pyzx.circuit.Gate) and
+        x != pyzx.circuit.Gate and x.__name__ not in _do_not_include_instructions
     ]
-    return possible_things
+    return pset(possible_things)
 
 
 def parameter_names_from_gatething(thing: pyzx.circuit.Gate) -> PSet[str]:
@@ -61,7 +68,7 @@ def gatedef_from_gatething(thing) -> GateDef:
 # some gates are problematic -- in particular Qiskit's "gates" which
 # really just generate other gates, for example those which take a
 # number of bits as an argument.  for now we are disabling those
-Problematic_gatenames = pset({})
+Problematic_gatenames: PSet[str] = pset({})
 
 
 def attempt_gatedefs() -> Tuple[PSet[GateDef], PSet[str]]:
@@ -101,11 +108,10 @@ def dialect() -> Dialect:
                    gate_defs=gate_defs())  # type: ignore
 
 
-def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:
+def parameter_bindings_from_gate(gate: pyzx.circuit.Gate) -> PMap[str, Any]:
     # this is a little trickier than others.  Rather than storing parameters
     # in a dictionary, pyzx stores them as individual Gate members, ie
     # self.target, self.phi, etc.
-    not_parameters = {'label'}
     values = gate.params
     names = [k for k, v in signature(gate.__init__).parameters.items()
              ][0:len(values)]
@@ -153,26 +159,26 @@ def native_to_circuit(pc: pyzx.circuit.Circuit) -> Circuit:
     return Circuit(
         dialect_name=__dialect_name__,
         instructions=instructions,  # type: ignore
-        qubits=qubits)
+        qubits=qubits)  # type: ignore
+
 
 def pyzx_qubit_bindings(qubits: Sequence[int]):
     if len(qubits) == 3:
-        result = {'ctrl1': qubits[0],
-                  'ctrl2': qubits[1],
-                  'target': qubits[2] }
+        result = {'ctrl1': qubits[0], 'ctrl2': qubits[1], 'target': qubits[2]}
     elif len(qubits) == 2:
-        result = {'control': qubits[0],
-                  'target' : qubits[1] }
+        result = {'control': qubits[0], 'target': qubits[1]}
     elif len(qubits) == 1:
-        result = {'target': qubits[1]}
+        result = {'target': qubits[0]}
     else:
-        assert False
+        raise ValueError(f"invalid number of qubits: {qubits}")
     return result
 
 
 def pyzx_gate_from_instruction(i: Instruction):
     """
-    Create a qiskit Gate object from an instruction
+    Create a pyzx Gate object from an instruction.  Unlike
+    some other toolkits, a "gate" in pyzx is a fully-
+    instantiated instruction (with qubit assignments)
     """
     gclass = getattr(pyzx.circuit.gates, i.gate_def.name)
     parms = i.parameter_bindings
@@ -183,26 +189,21 @@ def pyzx_gate_from_instruction(i: Instruction):
 
 def circuit_to_native(c: Circuit) -> pyzx.Circuit:
     """
-    Make a qiskit circuit from a qcware_transpile Circuit
+    Make a pyzx circuit from a qcware_transpile Circuit
     """
     # qiskit wants the number of qubits first.
     num_qubits = max(c.qubits) - min(c.qubits) + 1
-    qr = qiskit.QuantumRegister(num_qubits)
-    result = qiskit.QuantumCircuit(qr)
+    result = pyzx.Circuit(num_qubits)
     for instruction in c.instructions:
-        g = qiskit_gate_from_instruction(instruction)
-        result.append(g, instruction.bit_bindings)
+        g = pyzx_gate_from_instruction(instruction)
+        result.append(g)
     result = result.reverse_bits()
     return result
 
 
-def native_circuits_are_equivalent(c1: qiskit.QuantumCircuit,
-                                   c2: qiskit.QuantumCircuit) -> bool:
+def native_circuits_are_equivalent(c1: pyzx.Circuit, c2: pyzx.Circuit) -> bool:
     """
     Whether or not two circuits are equivalent.  Not having a test_equivalence
     method here, we brute-force it by evaluating statevectors
     """
-    backend = qiskit.Aer.get_backend('statevector_simulator')
-    sv1 = qiskit.execute(c1, backend).result().data()['statevector']
-    sv2 = qiskit.execute(c2, backend).result().data()['statevector']
-    return np.allclose(sv1, sv2)
+    return c1.verify_equality(c2)
