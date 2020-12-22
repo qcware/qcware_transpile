@@ -9,7 +9,7 @@ from typing import Tuple, Any, Set, Sequence
 from inspect import isclass, signature
 import numpy as np  # type: ignore
 
-__dialect_name__ = "qiskit"
+__dialect_name__ = "pyzx"
 
 
 def pyzx_gatethings() -> PSet[Any]:
@@ -205,4 +205,4 @@ def native_circuits_are_equivalent(c1: qiskit.QuantumCircuit,
     backend = qiskit.Aer.get_backend('statevector_simulator')
     sv1 = qiskit.execute(c1, backend).result().data()['statevector']
     sv2 = qiskit.execute(c2, backend).result().data()['statevector']
-    return np.isclose(sv1, sv2).all()
+    return np.allclose(sv1, sv2)
