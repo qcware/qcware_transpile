@@ -24,8 +24,8 @@ def pyzx_gatethings() -> PSet[Any]:
     """
     possible_things = [
         x for x in pyzx.circuit.gates.__dict__.values()
-        if isclass(x) and issubclass(x, pyzx.circuit.Gate) and
-        x != pyzx.circuit.Gate and x.__name__ not in _do_not_include_instructions
+        if isclass(x) and issubclass(x, pyzx.circuit.Gate) and x !=
+        pyzx.circuit.Gate and x.__name__ not in _do_not_include_instructions
     ]
     return pset(possible_things)
 
@@ -108,14 +108,19 @@ def dialect() -> Dialect:
                    gate_defs=gate_defs())  # type: ignore
 
 
+def possible_parameter_names():
+    return set().union(*[x.parameter_names for x in dialect().gate_defs])
+
+
 def parameter_bindings_from_gate(gate: pyzx.circuit.Gate) -> PMap[str, Any]:
     # this is a little trickier than others.  Rather than storing parameters
     # in a dictionary, pyzx stores them as individual Gate members, ie
     # self.target, self.phi, etc.
-    values = gate.params
-    names = [k for k, v in signature(gate.__init__).parameters.items()
-             ][0:len(values)]
-    return map_seq_to_seq_unique(names, values)
+    result = {
+        k: getattr(gate, k)
+        for k in possible_parameter_names() if k in signature(gate.__init__).parameters.keys()
+    }
+    return result
 
 
 def qubit_bindings(g: pyzx.circuit.Gate):
@@ -183,7 +188,7 @@ def pyzx_gate_from_instruction(i: Instruction):
     gclass = getattr(pyzx.circuit.gates, i.gate_def.name)
     parms = i.parameter_bindings
     parms = parms.update(pyzx_qubit_bindings(i.bit_bindings))
-    gate = gclass(**i.parameter_bindings)
+    gate = gclass(**parms)
     return gate
 
 
@@ -196,8 +201,7 @@ def circuit_to_native(c: Circuit) -> pyzx.Circuit:
     result = pyzx.Circuit(num_qubits)
     for instruction in c.instructions:
         g = pyzx_gate_from_instruction(instruction)
-        result.append(g)
-    result = result.reverse_bits()
+        result.add_gate(g)
     return result
 
 
@@ -206,4 +210,4 @@ def native_circuits_are_equivalent(c1: pyzx.Circuit, c2: pyzx.Circuit) -> bool:
     Whether or not two circuits are equivalent.  Not having a test_equivalence
     method here, we brute-force it by evaluating statevectors
     """
-    return c1.verify_equality(c2)
+    return c1.gates == c2.gates # c1.verify_equality(c2) fails with FSim gates
