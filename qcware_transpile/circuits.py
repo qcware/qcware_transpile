@@ -20,6 +20,21 @@ class Circuit(object):
     qubits = attr.ib(type=PSet[Any], converter=pset)
 
     @classmethod
+    def from_tuples(cls, dialect: Dialect,
+                    instructions: Sequence[Tuple[str, Mapping, Sequence[int]]]):
+        """
+        A simplified version of from_instructions, where instead of
+        specifying the actual instruction objects, you specify
+        just the gate names, dict of parameters, and sequence of bit bindings
+        """
+        real_instructions = [
+            Instruction(gate_def=dialect.gate_named(x[0]),
+                        parameter_bindings=x[1],
+                        bit_bindings=x[2]) for x in instructions
+        ]
+        return Circuit.from_instructions(dialect.name, real_instructions)
+
+    @classmethod
     def from_instructions(cls,
                           dialect_name: str,
                           instructions: Sequence[Instruction],

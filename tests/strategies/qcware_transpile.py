@@ -205,8 +205,8 @@ def translations(draw,
     from_circuit = attr.evolve(from_circuit, instructions=new_instructions)
     # since we have to have *some* values to pull from,
     # assume there are parameters in the source
-    assume(len(pm.keys()) > 0)
-    assert (len(pm.keys()) > 0)
+    # assume(len(pm.keys()) > 0)
+    # assert (len(pm.keys()) > 0)
     to_circuit = draw(
         circuits(to_dialect,
                  min_length=1,

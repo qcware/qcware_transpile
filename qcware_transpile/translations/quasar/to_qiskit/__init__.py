@@ -34,70 +34,30 @@ def translation_set():
     qiskit_d = qiskit_dialect.dialect()
     other_rules = {
         TranslationRule(
-            pattern=Circuit.from_instructions(
-                quasar_d.name,
-                instructions=[
-                    Instruction(gate_def=quasar_d.gate_named('RBS'),
-                                parameter_bindings={},
-                                bit_bindings=[0, 1])
-                ]),
-            replacement=Circuit.from_instructions(
-                qiskit_d.name,
-                instructions=[
-                    Instruction(gate_def=qiskit_d.gate_named('CXGate'),
-                                parameter_bindings={},
-                                bit_bindings=[1, 0]),
-                    Instruction(gate_def=qiskit_d.gate_named('CRYGate'),
-                                parameter_bindings={
-                                    'theta':
-                                    lambda pm: double_angle(pm[(0, 'theta')])
-                                },
-                                bit_bindings=[0, 1]),
-                    Instruction(gate_def=qiskit_d.gate_named('CXGate'),
-                                parameter_bindings={},
-                                bit_bindings=[1, 0])
-                ]))
+            pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]),
+            replacement=Circuit.from_tuples(
+                qiskit_d, [('CXGate', {}, [1, 0]),
+                           ('CRYGate', {
+                               'theta': lambda pm: double_angle(pm[
+                                   (0, 'theta')])
+                           }, [0, 1]), ('CXGate', {}, [1, 0])]))
     }
     # the U2/U3 rules are disabled for now as they seem to be problematic
     # in qiskit when comparing resultant statevectors
     u2u3_rules = {  # noqa F841
-        TranslationRule(pattern=Circuit.from_instructions(
-            dialect_name=quasar_d.name,
-            instructions=[
-                Instruction(gate_def=quasar_d.gate_named('u2'),
-                            parameter_bindings={},
-                            bit_bindings=[0])
-            ]),
-                        replacement=Circuit.from_instructions(
-                            dialect_name=qiskit_d.name,
-                            instructions=[
-                                Instruction(
-                                    gate_def=qiskit_d.gate_named('U2Gate'),
-                                    parameter_bindings={
-                                        'phi': lambda pm: pm[(0, 'phi')],
-                                        'lam': lambda pm: pm[(0, 'lam')]
-                                    },
-                                    bit_bindings=[0])
-                            ])),
-        TranslationRule(pattern=Circuit.from_instructions(
-            dialect_name=quasar_d.name,
-            instructions=[
-                Instruction(gate_def=quasar_d.gate_named('u3'),
-                            parameter_bindings={},
-                            bit_bindings=[0])
-            ]),
-                        replacement=Circuit.from_instructions(
-                            dialect_name=qiskit_d.name,
-                            instructions=[
-                                Instruction(
-                                    gate_def=qiskit_d.gate_named('U3Gate'),
-                                    parameter_bindings={
-                                        'theta': lambda pm: pm[(0, 'theta')],
-                                        'phi': lambda pm: pm[(0, 'phi')],
-                                        'lam': lambda pm: pm[(0, 'lam')]
-                                    },
-                                    bit_bindings=[0])
-                            ]))
+        TranslationRule(pattern=Circuit.from_tuples(quasar_d, [('u2', {}, [0])]),
+                        replacement=Circuit.from_tuples(
+                            qiskit_d, [('U2Gate', {
+                                'phi': lambda pm: pm[(0, 'phi')],
+                                'lam': lambda pm: pm[(0, 'lam')]
+                            }, [0])])),
+        TranslationRule(pattern=Circuit.from_tuples(quasar_d, [('u3', {}, [0])]),
+                        replacement=Circuit.from_tuples(
+                            qiskit_d, [('U3Gate', {
+                                'theta': lambda pm: pm[(0, 'theta')],
+                                'phi': lambda pm: pm[(0, 'phi')],
+                                'lam': lambda pm: pm[(0, 'lam')]
+                            }, [0])]))
     }
 
     rules = pset().union(trivial_rules(quasar_d, qiskit_d,

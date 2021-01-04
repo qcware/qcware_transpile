@@ -167,21 +167,21 @@ def test_translate_circuit(data):
     d1 = data.draw(
         dialects(min_gates=5,
                  min_num_parameters=0,
-                 max_num_parameters=1,
-                 max_num_bits=2))
+                 max_num_parameters=0,
+                 max_num_bits=1))
+    note("From dialect")
+    note(str(d1))
     d2 = data.draw(
         dialects(min_gates=5,
                  min_num_parameters=0,
-                 max_num_parameters=1,
-                 max_num_bits=2))
+                 max_num_parameters=0,
+                 max_num_bits=1))
+    note("To dialect")
+    note(str(d2))
     ts = data.draw(translation_sets(d1, d2, min_translations=3))
-    from_circuit = data.draw(translatable_circuits(ts))
-    # note("From dialect")
-    # note(str(d1))
-    # note("To dialect")
-    # note(str(d2))
     # note("Translation table")
     # note(str(ts))
+    ## from_circuit = data.draw(translatable_circuits(ts))
     # note("from_circuit")
     # note(str(from_circuit))
     # to_circuit = simple_translate(ts, from_circuit)
