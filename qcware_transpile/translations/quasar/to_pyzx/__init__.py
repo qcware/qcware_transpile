@@ -16,27 +16,60 @@ from numpy import pi
 
 def to_phase_angle(theta: float) -> Fraction:
     """
-    Pyzx seems to evaluate phase angles as a fraction of pi/2, so we must
+    Pyzx seems to evaluate phase angles as a fraction of pi (?), so we must
     translate our quasar angles into that
     """
-    return Fraction(theta / (pi / 2))
+    return Fraction(theta / pi)
 
 
 def translation_set():
     """
     Creates a translation set from quasar to qiskit
     """
-    trivial_gates = {('T', 'T'), ('X', 'NOT'), ('CZ', 'CZ'),
-                     ('Rz', 'ZPhase', to_phase_angle), ('Z', 'Z'),
-                     ('CX', 'CNOT'), ('S', 'S'),
-                     ('Rx', 'XPhase', to_phase_angle), ('SWAP', 'SWAP'),
-                     ('HAD', 'HAD')}
+    trivial_gates = {
+        ('H', 'HAD'),
+        ('X', 'NOT'),
+        ('CZ', 'CZ'),  # ('T', 'T', lambda pm: False),
+        ('Rz', 'ZPhase', to_phase_angle),
+        ('Z', 'Z'),
+        ('CX', 'CNOT'),  #, ('S', 'S')}
+        ('Rx', 'XPhase', to_phase_angle),
+        ('SWAP', 'SWAP')
+    }
 
+    # the T and S gates can be adjoint in pyzx, although in quasar those
+    # adjoints are the TT and ST gates respectively
     quasar_d = quasar_dialect.dialect()
     pyzx_d = pyzx_dialect.dialect()
+    st_gates = {
+        TranslationRule(pattern=Circuit.from_tuples(quasar_d,
+                                                    [('T', {}, [0])]),
+                        replacement=Circuit.from_tuples(
+                            pyzx_d, [('T', {
+                                'adjoint': False
+                            }, [0])])),
+        TranslationRule(pattern=Circuit.from_tuples(quasar_d,
+                                                    [('TT', {}, [0])]),
+                        replacement=Circuit.from_tuples(
+                            pyzx_d, [('T', {
+                                'adjoint': True
+                            }, [0])])),
+        TranslationRule(pattern=Circuit.from_tuples(quasar_d,
+                                                    [('S', {}, [0])]),
+                        replacement=Circuit.from_tuples(
+                            pyzx_d, [('S', {
+                                'adjoint': False
+                            }, [0])])),
+        TranslationRule(pattern=Circuit.from_tuples(quasar_d,
+                                                    [('ST', {}, [0])]),
+                        replacement=Circuit.from_tuples(
+                            pyzx_d, [('T', {
+                                'adjoint': True
+                            }, [0])])),
+    }
     rules = pset().union(trivial_rules(quasar_d, pyzx_d, trivial_gates))
-    return TranslationSet(from_dialect=pyzx_d,
-                          to_dialect=quasar_d,
+    return TranslationSet(from_dialect=quasar_d,
+                          to_dialect=pyzx_d,
                           rules=rules)
 
 

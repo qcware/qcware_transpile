@@ -5,6 +5,7 @@ from pyrsistent.typing import PVector, PMap
 from .gates import GateDef, _qubit_ids
 from .helpers import map_seq_to_seq
 from inspect import signature
+from fractions import Fraction
 
 
 @attr.s(frozen=True)
@@ -56,7 +57,7 @@ def _is_valid_executable_parameter_value(v: Any) -> bool:
     """
     whether the instruction parameter is valid for execution (is numeric)
     """
-    return type(v) in {int, float, complex}
+    return type(v) in {int, float, complex, bool, Fraction}
 
 
 def _is_valid_replacement_parameter_value(v: Any) -> bool:
@@ -68,7 +69,7 @@ def _is_valid_replacement_parameter_value(v: Any) -> bool:
     return ((isinstance(v, tuple) and isinstance(v[0], int)
              and isinstance(v[1], str))
             or (callable(v) and len(signature(v).parameters) == 1)
-            or (type(v) in {int, float, complex}))
+            or (type(v) in {int, float, complex, bool}))
 
 
 def instruction_is_valid_executable(i: Instruction) -> bool:

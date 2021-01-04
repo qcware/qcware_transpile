@@ -45,13 +45,15 @@ def translation_set():
     # the U2/U3 rules are disabled for now as they seem to be problematic
     # in qiskit when comparing resultant statevectors
     u2u3_rules = {  # noqa F841
-        TranslationRule(pattern=Circuit.from_tuples(quasar_d, [('u2', {}, [0])]),
+        TranslationRule(pattern=Circuit.from_tuples(quasar_d,
+                                                    [('u2', {}, [0])]),
                         replacement=Circuit.from_tuples(
                             qiskit_d, [('U2Gate', {
                                 'phi': lambda pm: pm[(0, 'phi')],
                                 'lam': lambda pm: pm[(0, 'lam')]
                             }, [0])])),
-        TranslationRule(pattern=Circuit.from_tuples(quasar_d, [('u3', {}, [0])]),
+        TranslationRule(pattern=Circuit.from_tuples(quasar_d,
+                                                    [('u3', {}, [0])]),
                         replacement=Circuit.from_tuples(
                             qiskit_d, [('U3Gate', {
                                 'theta': lambda pm: pm[(0, 'theta')],
