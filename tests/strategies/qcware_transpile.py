@@ -56,11 +56,13 @@ def dialects(draw,
     ngates = draw(integers(min_value=min_gates, max_value=max_gates))
     name = draw(name)
     gatedefs = draw(
-        lists(
-            gate_defs(num_bits=integers(min_value=1, max_value=max_num_bits)),
-            min_size=ngates,
-            max_size=ngates,
-            unique_by=lambda x: x.name))
+        lists(gate_defs(min_num_parameters=min_num_parameters,
+                        max_num_parameters=max_num_parameters,
+                        num_bits=integers(min_value=1,
+                                          max_value=max_num_bits)),
+              min_size=ngates,
+              max_size=ngates,
+              unique_by=lambda x: x.name))
     gatenames = [x.name for x in gatedefs]
     # juuust make sure there are no duplicate gate names
     assert len(gatenames) == len(gatedefs)
