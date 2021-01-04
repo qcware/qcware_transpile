@@ -1,12 +1,16 @@
 from qcware_transpile.matching import (TranslationRule, TranslationSet,
                                        trivial_rule, trivial_rules,
-                                       untranslated_gates,
+                                       untranslated_gates, simple_translate,
                                        circuit_is_simply_translatable_by)
-from qcware_transpile.dialects import quasar as quasar_dialect, qiskit as qiskit_dialect
+from qcware_transpile.dialects import (quasar as quasar_dialect, qiskit as
+                                       qiskit_dialect)
 from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
+from dpcontracts import require
 import quasar
 from pyrsistent import pset
+import qiskit
+from toolz.functoolz import thread_first
 
 
 def double_angle(theta):
@@ -116,3 +120,14 @@ def native_is_translatable(c: quasar.Circuit):
     return quasar.Circuit.test_equivalence(
         c, c.center()) and circuit_is_simply_translatable_by(
             quasar_dialect.native_to_circuit(c), translation_set())
+
+
+@require("Native circuit must be translatable",
+         lambda args: native_is_translatable(args.c))
+def to_qiskit(c: quasar.Circuit) -> qiskit.QuantumCircuit:
+    """
+    Native-to-native translation
+    """
+    return thread_first(c, quasar_dialect.native_to_circuit,
+                        lambda x: simple_translate(translation_set(), x),
+                        qiskit_dialect.circuit_to_native)

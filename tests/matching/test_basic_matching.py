@@ -217,7 +217,8 @@ def test_trivial_rule(data, num_parameters, num_bits):
         """
         We want to make sure that in both dialect A and B,
         there exists at least one gate with the desired number
-        of parameters and which uses the max number of bits
+        of parameters and which uses the max number of bits.  Trivial
+        Rules handle up to one parameter.
         """
         return len(x.parameter_names) == num_parameters and len(
             x.qubit_ids) == num_bits

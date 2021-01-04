@@ -1,12 +1,15 @@
 from qcware_transpile.matching import (TranslationRule, TranslationSet,
                                        trivial_rule, trivial_rules,
-                                       untranslated_gates,
+                                       untranslated_gates, simple_translate,
                                        circuit_is_simply_translatable_by)
 from qcware_transpile.dialects import quasar as quasar_dialect, qiskit as qiskit_dialect
 import qiskit
 from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
 from pyrsistent import pset
+from dpcontracts import require
+import quasar
+from toolz.functoolz import thread_first
 
 
 def half_angle(theta):
@@ -44,11 +47,9 @@ def translation_set():
                             instructions=[
                                 Instruction(gate_def=quasar_d.gate_named('u2'),
                                             parameter_bindings={
-                                                'phi':
-                                                lambda pm: pm[
+                                                'phi': lambda pm: pm[
                                                     (0, 'phi')],
-                                                'lam':
-                                                lambda pm: pm[
+                                                'lam': lambda pm: pm[
                                                     (0, 'lam')]
                                             },
                                             bit_bindings=[0])
@@ -66,20 +67,16 @@ def translation_set():
                                 Instruction(gate_def=quasar_d.gate_named('u3'),
                                             parameter_bindings={
                                                 'theta':
-                                                lambda pm: pm[
-                                                    (0, 'theta')],
+                                                lambda pm: pm[(0, 'theta')],
                                                 'phi':
-                                                lambda pm: pm[
-                                                    (0, 'phi')],
+                                                lambda pm: pm[(0, 'phi')],
                                                 'lam':
-                                                lambda pm: pm[
-                                                    (0, 'lam')]
+                                                lambda pm: pm[(0, 'lam')]
                                             },
                                             bit_bindings=[0])
                             ]))
     }
-    rules = pset().union(trivial_rules(qiskit_d, quasar_d,
-                                       trivial_gates))
+    rules = pset().union(trivial_rules(qiskit_d, quasar_d, trivial_gates))
     return TranslationSet(from_dialect=qiskit_d,
                           to_dialect=quasar_d,
                           rules=rules)
@@ -105,3 +102,15 @@ def native_is_translatable(c: qiskit.QuantumCircuit):
                                  == used_qubits[0]) and (circuit_qubits[-1]
                                                          == used_qubits[-1])
     return has_translatable_instructions and has_no_unused_edge_qubits
+
+
+@require("Native circuit must be translatable",
+         lambda args: native_is_translatable(args.c))
+def to_quasar(c: qiskit.QuantumCircuit) -> quasar.Circuit:
+    """
+    Native-to-native translation
+    """
+    return thread_first(c, qiskit_dialect.native_to_circuit,
+                        lambda x: simple_translate(translation_set(), x),
+                        quasar_dialect.circuit_to_native)
+
