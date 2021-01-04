@@ -3,7 +3,7 @@ from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
-from pyrsistent import pset
+from pyrsistent import pset, pmap
 from pyrsistent.typing import PSet, PMap
 from typing import Tuple, Any, Set, Sequence
 from inspect import isclass, signature
@@ -117,10 +117,10 @@ def parameter_bindings_from_gate(gate: pyzx.circuit.Gate) -> PMap[str, Any]:
     # in a dictionary, pyzx stores them as individual Gate members, ie
     # self.target, self.phi, etc.
     result = {
-        k: getattr(gate, k)
+        str(k): getattr(gate, k)
         for k in possible_parameter_names() if k in signature(gate.__init__).parameters.keys()
     }
-    return result
+    return pmap(result)
 
 
 def qubit_bindings(g: pyzx.circuit.Gate):

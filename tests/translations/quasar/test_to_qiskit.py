@@ -41,4 +41,4 @@ def test_translate_quasar_to_qiskit(quasar_circuit):
     note(qiskit_native_circuit.draw())
     sv_quasar = quasar_statevector(quasar_circuit)
     sv_qiskit = qiskit_statevector(qiskit_native_circuit)
-    assert (numpy.isclose(sv_quasar, sv_qiskit).all())
+    assert (numpy.allclose(sv_quasar, sv_qiskit))

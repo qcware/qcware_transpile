@@ -21,6 +21,7 @@ mypy = "^0.790"
 watchdog = {extras = ["watchmedo"], version = "^1.0.1"}
 invoke = "^1.4.1"
 pyls-mypy = "^0.1.8"
+pytest-parallel = "^0.1.0"
 
 [tool.poetry.extras]
 qcware-quasar = ["qcware-quasar"]

@@ -28,7 +28,10 @@ def translation_set():
 
     quasar_d = quasar_dialect.dialect()
     qiskit_d = qiskit_dialect.dialect()
-    other_rules = {
+    # the u2/u3 rules are included but disabled due to flakiness
+    # between quasar and qiskit.  Qiskit appears to be in the wrong
+    # for this.
+    u2u3_rules = {  # noqa F841
         TranslationRule(pattern=Circuit.from_instructions(
             dialect_name=qiskit_d.name,
             instructions=[
@@ -76,7 +79,7 @@ def translation_set():
                             ]))
     }
     rules = pset().union(trivial_rules(qiskit_d, quasar_d,
-                                       trivial_gates)).union(other_rules)
+                                       trivial_gates))
     return TranslationSet(from_dialect=qiskit_d,
                           to_dialect=quasar_d,
                           rules=rules)

@@ -52,7 +52,11 @@ def translation_set():
                     Instruction(gate_def=qiskit_d.gate_named('CXGate'),
                                 parameter_bindings={},
                                 bit_bindings=[1, 0])
-                ])),
+                ]))
+    }
+    # the U2/U3 rules are disabled for now as they seem to be problematic
+    # in qiskit when comparing resultant statevectors
+    u2u3_rules = {  # noqa F841
         TranslationRule(pattern=Circuit.from_instructions(
             dialect_name=quasar_d.name,
             instructions=[

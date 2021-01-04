@@ -203,15 +203,22 @@ def test_trivial_rule(data, num_parameters, num_bits):
     exercises the pre- and post-conditions for testing
     """
     dialect_a = data.draw(
-        dialects(min_num_parameters=num_parameters,
+        dialects(min_gates=7,
+                 min_num_parameters=num_parameters,
                  max_num_parameters=num_parameters,
                  max_num_bits=num_bits))
     dialect_b = data.draw(
-        dialects(min_num_parameters=num_parameters,
+        dialects(min_gates=7,
+                 min_num_parameters=num_parameters,
                  max_num_parameters=num_parameters,
                  max_num_bits=num_bits))
 
     def simple_pred(x):
+        """
+        We want to make sure that in both dialect A and B,
+        there exists at least one gate with the desired number
+        of parameters and which uses the max number of bits
+        """
         return len(x.parameter_names) == num_parameters and len(
             x.qubit_ids) == num_bits
 
