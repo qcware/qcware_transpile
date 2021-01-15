@@ -1,6 +1,6 @@
 from ..strategies.qiskit import circuits
-from qcware_transpile.dialects.qiskit import (native_to_circuit,
-                                              circuit_to_native,
+from qcware_transpile.dialects.qiskit import (native_to_ir,
+                                              ir_to_native,
                                               native_circuits_are_equivalent)
 from hypothesis import given, note, settings
 
@@ -8,6 +8,6 @@ from hypothesis import given, note, settings
 @settings(deadline=None)
 def test_conversion(qc):
     note(qc.draw())
-    c = native_to_circuit(qc)
-    qc2 = circuit_to_native(c)
+    c = native_to_ir(qc)
+    qc2 = ir_to_native(c)
     assert native_circuits_are_equivalent(qc, qc2)

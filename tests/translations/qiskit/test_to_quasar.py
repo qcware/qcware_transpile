@@ -27,11 +27,11 @@ def qiskit_statevector(circuit: qiskit.QuantumCircuit):
 def test_translate_qiskit_to_quasar(qiskit_circuit):
     assume(native_is_translatable(qiskit_circuit))
     note(qiskit_circuit.draw())
-    qiskit_transpilation_circuit = qiskit_dialect.native_to_circuit(qiskit_circuit)
+    qiskit_transpilation_circuit = qiskit_dialect.native_to_ir(qiskit_circuit)
     note(str(qiskit_transpilation_circuit))
     quasar_transpiled_circuit = simple_translate(ts, qiskit_transpilation_circuit)
     note(str(quasar_transpiled_circuit))
-    quasar_native_circuit = quasar_dialect.circuit_to_native(quasar_transpiled_circuit)
+    quasar_native_circuit = quasar_dialect.ir_to_native(quasar_transpiled_circuit)
     note(str(quasar_native_circuit))
     sv_quasar = quasar_statevector(quasar_native_circuit)
     sv_qiskit = qiskit_statevector(qiskit_circuit)

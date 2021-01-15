@@ -107,7 +107,7 @@ def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:
     return map_seq_to_seq_unique(names, values)
 
 
-def native_to_circuit(qc: qiskit.QuantumCircuit) -> Circuit:
+def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
     """
     Return a transpile-style Circuit object from a qiskit Circuit object
     """
@@ -142,7 +142,7 @@ def qiskit_gate_from_instruction(i: Instruction):
     return gate
 
 
-def circuit_to_native(c: Circuit) -> qiskit.QuantumCircuit:
+def ir_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     """
     Make a qiskit circuit from a qcware_transpile Circuit
     """

@@ -92,7 +92,7 @@ def native_is_translatable(c: qiskit.QuantumCircuit):
     A native circuit is translatable to quasar if it has no leading or
     following "empty" qubits as currently there is no way to express this in quasar
     """
-    qdc = qiskit_dialect.native_to_circuit(c)
+    qdc = qiskit_dialect.native_to_ir(c)
     circuit_qubits = sorted(list(qdc.qubits))
     used_qubits = sorted(
         list(set().union(*[set(i.bit_bindings) for i in qdc.instructions])))
@@ -106,11 +106,11 @@ def native_is_translatable(c: qiskit.QuantumCircuit):
 
 @require("Native circuit must be translatable",
          lambda args: native_is_translatable(args.c))
-def to_quasar(c: qiskit.QuantumCircuit) -> quasar.Circuit:
+def translate(c: qiskit.QuantumCircuit) -> quasar.Circuit:
     """
     Native-to-native translation
     """
-    return thread_first(c, qiskit_dialect.native_to_circuit,
+    return thread_first(c, qiskit_dialect.native_to_ir,
                         lambda x: simple_translate(translation_set(), x),
-                        quasar_dialect.circuit_to_native)
+                        quasar_dialect.ir_to_native)
 

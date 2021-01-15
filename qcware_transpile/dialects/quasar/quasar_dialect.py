@@ -158,7 +158,7 @@ def name_property_to_namespace_translation_table():
     return map_seq_to_seq_unique(name_property, namespace_names)
 
 
-def native_to_circuit(qc: QuasarCircuit) -> Circuit:
+def native_to_ir(qc: QuasarCircuit) -> Circuit:
     """
     Return a transpile-style Circuit object from a quasar Circuit object
     """
@@ -186,7 +186,7 @@ def quasar_gate_from_instruction(i: Instruction) -> Gate:
     return g
 
 
-def circuit_to_native(c: Circuit) -> QuasarCircuit:
+def ir_to_native(c: Circuit) -> QuasarCircuit:
     result = QuasarCircuit()
     for instruction in c.instructions:
         g = quasar_gate_from_instruction(instruction)

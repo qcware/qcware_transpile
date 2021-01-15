@@ -142,7 +142,7 @@ def qubit_bindings(g: pyzx.circuit.Gate):
     return result
 
 
-def native_to_circuit(pc: pyzx.circuit.Circuit) -> Circuit:
+def native_to_ir(pc: pyzx.circuit.Circuit) -> Circuit:
     """
     Return a transpile-style Circuit object from a qiskit Circuit object
     """
@@ -192,7 +192,7 @@ def pyzx_gate_from_instruction(i: Instruction):
     return gate
 
 
-def circuit_to_native(c: Circuit) -> pyzx.Circuit:
+def ir_to_native(c: Circuit) -> pyzx.Circuit:
     """
     Make a pyzx circuit from a qcware_transpile Circuit
     """

@@ -29,13 +29,13 @@ def quasar_statevector(circuit: quasar.Circuit):
 def test_translate_quasar_to_qiskit(quasar_circuit):
     assume(native_is_translatable(quasar_circuit))
     note(str(quasar_circuit))
-    quasar_transpilation_circuit = quasar_dialect.native_to_circuit(
+    quasar_transpilation_circuit = quasar_dialect.native_to_ir(
         quasar_circuit)
     note(str(quasar_transpilation_circuit))
     pyzx_transpiled_circuit = simple_translate(ts,
                                                quasar_transpilation_circuit)
     note(str(pyzx_transpiled_circuit))
-    pyzx_native_circuit = pyzx_dialect.circuit_to_native(
+    pyzx_native_circuit = pyzx_dialect.ir_to_native(
         pyzx_transpiled_circuit)
     note(pyzx_native_circuit.gates)
     # we can't test statevector equivalence, so let's just translate back
@@ -47,7 +47,7 @@ def test_translate_quasar_to_qiskit(quasar_circuit):
     #pyzx_optimized = pyzx.extract_circuit(g.copy())
     note("Optimized pyzx")
     note(pyzx_optimized.gates)
-    quasar_circuit_2 = to_quasar.to_quasar(pyzx_optimized)
+    quasar_circuit_2 = to_quasar.translate(pyzx_optimized)
     note(str(quasar_circuit_2))
     # this peculiar business derives from the fact that Pyzx will happily
     # optimize some qubits out of existence.  We're just playing here.

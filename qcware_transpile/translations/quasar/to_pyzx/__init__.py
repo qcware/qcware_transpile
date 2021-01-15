@@ -86,15 +86,15 @@ def native_is_translatable(c: quasar.Circuit):
     """
     return quasar.Circuit.test_equivalence(
         c, c.center()) and circuit_is_simply_translatable_by(
-            quasar_dialect.native_to_circuit(c), translation_set())
+            quasar_dialect.native_to_ir(c), translation_set())
 
 
 @require("Native circuit must be translatable",
          lambda args: native_is_translatable(args.c))
-def to_pyzx(c: quasar.Circuit) -> pyzx.Circuit:
+def translate(c: quasar.Circuit) -> pyzx.Circuit:
     """
     Native-to-native translation
     """
-    return thread_first(c, quasar_dialect.native_to_circuit,
+    return thread_first(c, quasar_dialect.native_to_ir,
                         lambda x: simple_translate(translation_set(), x),
-                        pyzx_dialect.circuit_to_native)
+                        pyzx_dialect.ir_to_native)
