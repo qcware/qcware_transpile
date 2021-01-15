@@ -1,6 +1,6 @@
 """
-Functions and structures to programatically construct a dialect
-from inspection of the qiskit library
+Pyzx is a toolkit for manipulating circuits using the ZX
+calculus.
 """
 
 from .pyzx_dialect import (dialect, native_to_ir, ir_to_native,

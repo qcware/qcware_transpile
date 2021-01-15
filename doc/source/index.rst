@@ -10,7 +10,9 @@ Welcome to qcware-transpile's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   introduction
+   concepts
+   dialects
 
 Indices and tables
 ==================

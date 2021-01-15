@@ -1,7 +1,8 @@
 """
-Functions and structures involved with extracting a usable
-Dialect from quasar, and converting to and from Quasar
-Circuits (and possibly returns)
+Quasar is the toolkit used by QC Ware internally.
+
+It supports fast and accurate simulation and evaluation with
+QC Ware's Forge platform
 """
 from .quasar_dialect import (dialect, native_to_ir, ir_to_native,
                              native_circuits_are_equivalent)

@@ -207,7 +207,9 @@ def ir_to_native(c: Circuit) -> pyzx.Circuit:
 
 def native_circuits_are_equivalent(c1: pyzx.Circuit, c2: pyzx.Circuit) -> bool:
     """
-    Whether or not two circuits are equivalent.  Not having a test_equivalence
-    method here, we brute-force it by evaluating statevectors
+    Whether or not two circuits are equivalent.  This is used to check
+    for equivalence of the sequence of instructions, for testing; while
+    pyzx has a more complicated test for equivalence, we here check only
+    that the series of gates are the same
     """
     return c1.gates == c2.gates # c1.verify_equality(c2) fails with FSim gates
