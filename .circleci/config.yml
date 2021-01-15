@@ -1,0 +1,12 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@1.3.2
+
+workflows:
+  main:
+    jobs:
+      - python/test:
+          args: '-E qcware-quasar -E qiskit -E pyzx'
+          pkg-manager: poetry
+          test-tool: pytest
