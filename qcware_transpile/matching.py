@@ -175,10 +175,15 @@ def circuit_is_simply_translatable_by(c: Circuit, ts: TranslationSet) -> bool:
     A simple translation is one where each instruction in the circuit is
     addressed by a single-instruction pattern in the translation set
     """
+    return len(untranslatable_instructions(c, ts)) == 0
+
+
+def untranslatable_instructions(c: Circuit,
+                                ts: TranslationSet) -> PSet[Instruction]:
     subcircuits = [
         Circuit.from_instructions(c.dialect_name, [i]) for i in c.instructions
     ]  # type: ignore
-    return all([len(matching_rules(ts, subc)) > 0 for subc in subcircuits])
+    return pset({x for x in subcircuits if len(matching_rules(ts, x)) == 0})
 
 
 @require("Circuit must belong to the translation set 'from' dialect",

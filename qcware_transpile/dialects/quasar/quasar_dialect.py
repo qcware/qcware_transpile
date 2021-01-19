@@ -2,7 +2,7 @@ from quasar.circuit import Gate  # type: ignore
 from quasar.circuit import Circuit as QuasarCircuit  # type: ignore
 from pyrsistent import pset
 from pyrsistent.typing import PSet
-from typing import Callable, Any
+from typing import Callable, Any, Tuple, Generator, Dict
 # not using relative imports here for the moment to simplify emacs
 # send-to-buffer issues; it should arguably be set back to relative
 # imports at some point
@@ -12,6 +12,7 @@ from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
 from inspect import signature
 from dpcontracts import require  # type: ignore
+import functools
 
 __dialect_name__ = "quasar"
 
@@ -108,10 +109,12 @@ def gate_name_property(thing: Any) -> str:
         return None
 
 
+@functools.lru_cache(1)
 def quasar_names_full() -> PSet[str]:
     return pset(dir(Gate))
 
 
+@functools.lru_cache(1)
 def quasar_gatenames_full() -> PSet[str]:
     """
     The names of verything in the Gate namespace
@@ -122,6 +125,7 @@ def quasar_gatenames_full() -> PSet[str]:
     return result
 
 
+@functools.lru_cache(1)
 def quasar_gatethings_full() -> PSet:
     """
     All the things in the Gate namespace which represent a gate
@@ -134,6 +138,7 @@ def quasar_gatethings_full() -> PSet:
     return result
 
 
+@functools.lru_cache(1)
 def dialect() -> Dialect:
     """
     Programmatically create the Quasar dialect
@@ -145,6 +150,7 @@ def dialect() -> Dialect:
     return Dialect(name="quasar", gate_defs=gatedefs)  # type: ignore
 
 
+@functools.lru_cache(1)
 def name_property_to_namespace_translation_table():
     """
     Okay... names in the Gate namespace for gates ("ST") don't always translate
@@ -158,20 +164,35 @@ def name_property_to_namespace_translation_table():
     return map_seq_to_seq_unique(name_property, namespace_names)
 
 
+def native_instructions(
+        qc: QuasarCircuit) -> Generator[Tuple[Gate, Tuple[int]], None, None]:
+    """
+    Iterates through the circuit yielding tuples of gate and 
+    qubits.
+    """
+    for key, gate in qc.gates.items():
+        yield gate, key[1]
+
+
+def ir_instruction_from_native(gate: Gate, qubits: Tuple[int]) -> Instruction:
+    """
+    Direct conversion of one gate/qubits tuple into an IR "instruction"
+    """
+    ntt = name_property_to_namespace_translation_table()
+    return Instruction(gate_def=gatedef_from_gatething(ntt[gate.name], gate),
+                       bit_bindings=qubits,
+                       parameter_bindings=gate.parameters)
+
+
 def native_to_ir(qc: QuasarCircuit) -> Circuit:
     """
     Return a transpile-style Circuit object from a quasar Circuit object
     """
-    instructions = []
-    ntt = name_property_to_namespace_translation_table()
-    for key, gate in qc.gates.items():
-        times, qubits = key
-        instructions.append(
-            Instruction(gate_def=gatedef_from_gatething(ntt[gate.name], gate),
-                        bit_bindings=qubits,
-                        parameter_bindings=gate.parameters))
+    instructions = list(
+        ir_instruction_from_native(x[0], x[1])
+        for x in native_instructions(qc))
     return Circuit.from_instructions(dialect_name=__dialect_name__,
-                   instructions=instructions)  # type: ignore
+                                     instructions=instructions)  # type: ignore
 
 
 def quasar_gate_from_instruction(i: Instruction) -> Gate:
@@ -201,3 +222,11 @@ def native_circuits_are_equivalent(c1: QuasarCircuit,
     used to test
     """
     return QuasarCircuit.test_equivalence(c1, c2)
+
+
+def audit(c: QuasarCircuit) -> Dict:
+    """
+    Right now, anything expressible in Quasar *should*
+    be expressible in the IR, so this is a dummy result.
+    """
+    return {}

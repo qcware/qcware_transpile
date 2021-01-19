@@ -2,12 +2,12 @@ import pyzx  # type: ignore
 from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
-from qcware_transpile.helpers import map_seq_to_seq_unique
 from pyrsistent import pset, pmap
 from pyrsistent.typing import PSet, PMap
-from typing import Tuple, Any, Set, Sequence
+from typing import Tuple, Any, Set, Sequence, Generator, Dict
 from inspect import isclass, signature
-import numpy as np
+from functools import lru_cache
+from dpcontracts import require
 
 __dialect_name__ = "pyzx"
 
@@ -16,6 +16,7 @@ __dialect_name__ = "pyzx"
 _do_not_include_instructions = {"ParityPhase", "InitAncilla", "PostSelect"}
 
 
+@lru_cache(1)
 def pyzx_gatethings() -> PSet[Any]:
     """
     The set of all things in qiskit which represent a gate.  We
@@ -100,12 +101,18 @@ def gate_names() -> PSet[str]:
     return pset([g.name for g in gate_defs()])
 
 
+@lru_cache(1)
 def dialect() -> Dialect:
     """
     The pyzx dialect
     """
     return Dialect(name=__dialect_name__,
                    gate_defs=gate_defs())  # type: ignore
+
+
+@lru_cache(1)
+def valid_gatenames() -> Set[str]:
+    return {g.name for g in dialect().gate_defs}
 
 
 def possible_parameter_names():
@@ -118,7 +125,8 @@ def parameter_bindings_from_gate(gate: pyzx.circuit.Gate) -> PMap[str, Any]:
     # self.target, self.phi, etc.
     result = {
         str(k): getattr(gate, k)
-        for k in possible_parameter_names() if k in signature(gate.__init__).parameters.keys()
+        for k in possible_parameter_names()
+        if k in signature(gate.__init__).parameters.keys()
     }
     return pmap(result)
 
@@ -142,24 +150,27 @@ def qubit_bindings(g: pyzx.circuit.Gate):
     return result
 
 
+def native_instructions(
+        pc: pyzx.circuit.Circuit) -> Generator[pyzx.circuit.Gate, None, None]:
+    for g in pc.gates:
+        yield g
+
+
+@require('gate name must be valid',
+         lambda args: args.g.__class__.__name__ in valid_gatenames())
+def ir_instruction_from_native(g: pyzx.circuit.Gate) -> Instruction:
+    return Instruction(
+        gate_def=gatedef_from_gatething(g.__class__),
+        parameter_bindings=parameter_bindings_from_gate(g),  # type: ignore
+        bit_bindings=qubit_bindings(g))
+
+
 def native_to_ir(pc: pyzx.circuit.Circuit) -> Circuit:
     """
     Return a transpile-style Circuit object from a qiskit Circuit object
     """
-    instructions = []
-    d = dialect()
-    valid_names = [g.name for g in d.gate_defs]
-    for g in pc.gates:
-        gate_name = g.__class__.__name__
-        assert (gate_name in valid_names)
-        gate_def = gatedef_from_gatething(g.__class__)
-        parameter_bindings = parameter_bindings_from_gate(g)
-        bindings = qubit_bindings(g)
-        instructions.append(
-            Instruction(
-                gate_def=gate_def,
-                parameter_bindings=parameter_bindings,  # type: ignore
-                bit_bindings=bindings))
+    instructions = list(
+        (ir_instruction_from_native(x) for x in native_instructions(pc)))
     qubits = list(range(pc.qubits))
     return Circuit(
         dialect_name=__dialect_name__,
@@ -212,4 +223,20 @@ def native_circuits_are_equivalent(c1: pyzx.Circuit, c2: pyzx.Circuit) -> bool:
     pyzx has a more complicated test for equivalence, we here check only
     that the series of gates are the same
     """
-    return c1.gates == c2.gates # c1.verify_equality(c2) fails with FSim gates
+    return c1.gates == c2.gates  # c1.verify_equality(c2) fails with FSim gates
+
+
+def audit(c: pyzx.Circuit) -> Dict:
+    """
+    Retrieve a dictionary with various members indicating
+    any aspects of the circuit which would make it not
+    convertible to the IR
+    """
+    invalid_gate_names = set()
+    for g in native_instructions(c):
+        if g.__class__.__name__ not in valid_gatenames():
+            invalid_gate_names.add(g.__class__.__name__)
+    result = {}
+    if len(invalid_gate_names) > 0:
+        result['invalid_gate_names'] = invalid_gate_names
+    return result

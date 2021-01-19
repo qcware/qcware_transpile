@@ -55,6 +55,7 @@ def test_bit_binding_signature(dc: Tuple[Dialect, Circuit]):
 
 
 @given(dialect_and_circuit(min_circuit_length=2, max_circuit_length=4))
+@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
     d, c = dc
     # first test that the circuit matches itself
@@ -197,6 +198,7 @@ def test_translate_circuit(data):
 @given(data=data(),
        num_parameters=integers(min_value=0, max_value=1),
        num_bits=integers(min_value=1, max_value=3))
+@settings(suppress_health_check=[HealthCheck.too_slow])
 def test_trivial_rule(data, num_parameters, num_bits):
     """
     This is honestly a bit more of a smoke test than anything else; it

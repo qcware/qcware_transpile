@@ -5,13 +5,16 @@ from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
 from pyrsistent import pset
 from pyrsistent.typing import PSet, PMap
-from typing import Tuple, Any, Set
+from typing import Tuple, Any, Set, Generator, List, Dict
 from inspect import isclass, signature
 import numpy as np  # type: ignore
+from functools import lru_cache
+from dpcontracts import require
 
 __dialect_name__ = "qiskit"
 
 
+@lru_cache(1)
 def qiskit_gatethings() -> PSet[Any]:
     """
     The set of all things in qiskit which represent a gate
@@ -93,11 +96,18 @@ def gate_names() -> PSet[str]:
     return pset([g.name for g in gate_defs()])
 
 
+@lru_cache(1)
 def dialect() -> Dialect:
     """
     The qiskit dialect
     """
-    return Dialect(name=__dialect_name__, gate_defs=gate_defs())  # type: ignore
+    return Dialect(name=__dialect_name__,
+                   gate_defs=gate_defs())  # type: ignore
+
+
+@lru_cache(1)
+def valid_gatenames() -> Set[str]:
+    return {g.name for g in dialect().gate_defs}
 
 
 def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:
@@ -107,30 +117,42 @@ def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:
     return map_seq_to_seq_unique(names, values)
 
 
+def native_instructions(
+    qc: qiskit.QuantumCircuit
+) -> Generator[Tuple[qiskit.circuit.Gate, List[qiskit.circuit.Qubit]], None,
+               None]:
+    """
+    Iterates (in reverse) over the circuit
+    """
+    rqc = qc.reverse_bits()
+    for (instruction, qubits, cbits) in rqc.data:
+        if (len(cbits) == 0):
+            yield instruction, qubits
+
+
+@require('gate name must be valid',
+         lambda args: args.gate.__class__.__name__ in valid_gatenames())
+def ir_instruction_from_native(
+        gate: qiskit.circuit.Gate,
+        qubits: List[qiskit.circuit.Qubit]) -> Instruction:
+    return Instruction(
+        gate_def=gatedef_from_gatething(gate.__class__),
+        parameter_bindings=parameter_bindings_from_gate(gate),  # type: ignore
+        bit_bindings=[qb.index for qb in qubits])
+
+
 def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
     """
     Return a transpile-style Circuit object from a qiskit Circuit object
     """
-    instructions = []
-    d = dialect()
-    valid_names = [g.name for g in d.gate_defs]
-    qc = qc.reverse_bits()
-    for (instruction, qubits, cbits) in qc.data:
-        assert (len(cbits) == 0)
-        gate_name = instruction.__class__.__name__
-        assert (gate_name in valid_names)
-        gate_def = gatedef_from_gatething(instruction.__class__)
-        parameter_bindings = parameter_bindings_from_gate(instruction)
-        qubit_bindings = [qb.index for qb in qubits]
-        instructions.append(
-            Instruction(
-                gate_def=gate_def,
-                parameter_bindings=parameter_bindings,  # type: ignore
-                bit_bindings=qubit_bindings))
+    instructions = list(
+        ir_instruction_from_native(x[0], x[1])
+        for x in native_instructions(qc))
     qubits = list(range(qc.num_qubits))
-    return Circuit(dialect_name=__dialect_name__,
-                   instructions=instructions,   # type: ignore
-                   qubits=qubits)
+    return Circuit(
+        dialect_name=__dialect_name__,
+        instructions=instructions,  # type: ignore
+        qubits=qubits)  # type: ignore
 
 
 def qiskit_gate_from_instruction(i: Instruction):
@@ -167,3 +189,31 @@ def native_circuits_are_equivalent(c1: qiskit.QuantumCircuit,
     sv1 = qiskit.execute(c1, backend).result().data()['statevector']
     sv2 = qiskit.execute(c2, backend).result().data()['statevector']
     return np.isclose(sv1, sv2).all()
+
+
+def audit(c: qiskit.QuantumCircuit) -> Dict:
+    """
+    Retrieve a dictionary with various members indicating
+    any aspects of the circuit which would make it not
+    convertible to the IR
+    """
+    # check for classical instructions
+    unhandled_classical_instructions = set()
+    rqc = c.reverse_bits()
+    for (instruction, qubits, cbits) in rqc.data:
+        if (len(cbits) != 0):
+            unhandled_classical_instructions.add(
+                instruction.__class__.__name__)
+
+    invalid_gate_names = set()
+    for g, qubits in native_instructions(c):
+        if g.__class__.__name__ not in valid_gatenames():
+            invalid_gate_names.add(g.__class__.__name__)
+    result = {}
+    if len(invalid_gate_names) > 0:
+        result['invalid_gate_names'] = invalid_gate_names
+
+    if len(unhandled_classical_instructions) != 0:
+        result['unhandled_classical_instructions'] = \
+            unhandled_classical_instructions
+    return result

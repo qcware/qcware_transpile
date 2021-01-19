@@ -12,6 +12,7 @@ import quasar
 from toolz.functoolz import thread_first
 from fractions import Fraction
 from numpy import pi
+from typing import Dict
 
 
 def to_phase_angle(theta: float) -> Fraction:
@@ -78,15 +79,29 @@ target_gatenames = sorted(
 untranslated = sorted([x.name for x in untranslated_gates(translation_set())])
 
 
+def audit(c: quasar.Circuit) -> Dict:
+    ir_audit = quasar_dialect.audit(c)
+    if len(ir_audit.keys()) > 0:
+        return ir_audit
+
+    irc = quasar_dialect.native_to_ir(c)
+    untranslatable = untranslatable_instructions(irc, translation_set())
+
+    result = {}
+    if len(untranslatable) > 0:
+        result['untranslatable_instructions'] = untranslatable
+    if not quasar.Circuit.test_equivalence(c, c.center()):
+        result['circuit_not_centered'] = True
+    return result
+
+
 def native_is_translatable(c: quasar.Circuit):
     """
     A native quasar circuit is translatable to qiskit if it
     is "centered" (ie no leading qubits) and is composed of translatable
     gates
     """
-    return quasar.Circuit.test_equivalence(
-        c, c.center()) and circuit_is_simply_translatable_by(
-            quasar_dialect.native_to_ir(c), translation_set())
+    return len(audit(c)) == 0
 
 
 @require("Native circuit must be translatable",

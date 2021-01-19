@@ -1,7 +1,8 @@
 from qcware_transpile.matching import (TranslationRule, TranslationSet,
                                        trivial_rule, trivial_rules,
                                        untranslated_gates, simple_translate,
-                                       circuit_is_simply_translatable_by)
+                                       circuit_is_simply_translatable_by,
+                                       untranslatable_instructions)
 from qcware_transpile.dialects import quasar as quasar_dialect, qiskit as qiskit_dialect
 import qiskit
 from qcware_transpile.circuits import Circuit
@@ -87,21 +88,42 @@ target_gatenames = sorted(
 untranslated = sorted([x.name for x in untranslated_gates(translation_set())])
 
 
+def audit(c: qiskit.QuantumCircuit):
+    """
+    Tries to return a list of issues with the circuit which would
+    make it untranslatable
+    """
+    ir_audit = qiskit_dialect.audit(c)
+    if len(ir_audit) > 0:
+        return ir_audit
+
+    qdc = qiskit_dialect.native_to_ir(c)
+    untranslatable = untranslatable_instructions(qdc, translation_set())
+
+    circuit_qubits = sorted(list(qdc.qubits))
+    used_qubits = sorted(
+        list(set().union(*[set(i.bit_bindings) for i in qdc.instructions])))
+
+    unused_edge_qubits = {
+        x
+        for x in circuit_qubits
+        if (x < used_qubits[0]) or (x > used_qubits[-1])
+    }
+
+    result = {}
+    if len(untranslatable) > 0:
+        result['untranslatable_instructions'] = untranslatable
+    if len(unused_edge_qubits) > 0:
+        result['unused_edge_qubits'] = unused_edge_qubits
+    return result
+
+
 def native_is_translatable(c: qiskit.QuantumCircuit):
     """
     A native circuit is translatable to quasar if it has no leading or
     following "empty" qubits as currently there is no way to express this in quasar
     """
-    qdc = qiskit_dialect.native_to_ir(c)
-    circuit_qubits = sorted(list(qdc.qubits))
-    used_qubits = sorted(
-        list(set().union(*[set(i.bit_bindings) for i in qdc.instructions])))
-    has_translatable_instructions = circuit_is_simply_translatable_by(
-        qdc, translation_set())
-    has_no_unused_edge_qubits = (circuit_qubits[0]
-                                 == used_qubits[0]) and (circuit_qubits[-1]
-                                                         == used_qubits[-1])
-    return has_translatable_instructions and has_no_unused_edge_qubits
+    return len(audit(c)) == 0
 
 
 @require("Native circuit must be translatable",
@@ -113,4 +135,3 @@ def translate(c: qiskit.QuantumCircuit) -> quasar.Circuit:
     return thread_first(c, qiskit_dialect.native_to_ir,
                         lambda x: simple_translate(translation_set(), x),
                         quasar_dialect.ir_to_native)
-
