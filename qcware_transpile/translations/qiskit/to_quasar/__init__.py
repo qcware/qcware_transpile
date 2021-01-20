@@ -131,6 +131,8 @@ def translate(c: qiskit.QuantumCircuit) -> quasar.Circuit:
     """
     Native-to-native translation
     """
+    if not native_is_translatable(c):
+        raise TranslationException(audit(c))
     try:
         return thread_first(c, qiskit_dialect.native_to_ir,
                             lambda x: simple_translate(translation_set(), x),
