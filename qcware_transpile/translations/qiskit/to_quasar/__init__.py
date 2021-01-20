@@ -127,8 +127,6 @@ def native_is_translatable(c: qiskit.QuantumCircuit):
     return len(audit(c)) == 0
 
 
-@require("Native circuit must be translatable",
-         lambda args: native_is_translatable(args.c))
 def translate(c: qiskit.QuantumCircuit) -> quasar.Circuit:
     """
     Native-to-native translation

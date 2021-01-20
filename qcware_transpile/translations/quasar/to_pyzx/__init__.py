@@ -105,8 +105,6 @@ def native_is_translatable(c: quasar.Circuit):
     return len(audit(c)) == 0
 
 
-@require("Native circuit must be translatable",
-         lambda args: native_is_translatable(args.c))
 def translate(c: quasar.Circuit) -> pyzx.Circuit:
     """
     Native-to-native translation

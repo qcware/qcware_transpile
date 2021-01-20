@@ -101,15 +101,13 @@ def native_is_translatable(c: pyzx.Circuit):
     return len(audit(c)) == 0
 
 
-@require("Native circuit must be translatable",
-         lambda args: native_is_translatable(args.c))
 def translate(c: pyzx.Circuit) -> quasar.Circuit:
     """
     Native-to-native translation
     """
     try:
         return thread_first(c, pyzx_dialect.native_to_ir,
-                       lambda x: simple_translate(translation_set(), x),
-                       quasar_dialect.ir_to_native)
+                            lambda x: simple_translate(translation_set(), x),
+                            quasar_dialect.ir_to_native)
     except PreconditionError:
-        raise TransationException(audit(c))
+        raise TranslationException(audit(c))
