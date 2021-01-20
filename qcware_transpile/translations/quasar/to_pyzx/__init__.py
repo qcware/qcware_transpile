@@ -5,9 +5,10 @@ from qcware_transpile.matching import (TranslationRule, TranslationSet,
 from qcware_transpile.dialects import quasar as quasar_dialect, pyzx as pyzx_dialect
 import pyzx
 from qcware_transpile.circuits import Circuit
+from qcware_transpile import TranslationException
 from qcware_transpile.instructions import Instruction
 from pyrsistent import pset
-from dpcontracts import require
+from dpcontracts import require, PreconditionError
 import quasar
 from toolz.functoolz import thread_first
 from fractions import Fraction
@@ -110,6 +111,9 @@ def translate(c: quasar.Circuit) -> pyzx.Circuit:
     """
     Native-to-native translation
     """
-    return thread_first(c, quasar_dialect.native_to_ir,
-                        lambda x: simple_translate(translation_set(), x),
-                        pyzx_dialect.ir_to_native)
+    try:
+        return thread_first(c, quasar_dialect.native_to_ir,
+                            lambda x: simple_translate(translation_set(), x),
+                            pyzx_dialect.ir_to_native)
+    except PreconditionError:
+        raise TranslationException(audit(c))

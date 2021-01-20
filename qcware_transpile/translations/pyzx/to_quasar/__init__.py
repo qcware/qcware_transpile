@@ -7,8 +7,9 @@ from qcware_transpile.dialects import quasar as quasar_dialect, pyzx as pyzx_dia
 import pyzx
 from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
+from qcware_transpile import TranslationException
 from pyrsistent import pset
-from dpcontracts import require
+from dpcontracts import require, PreconditionError
 import quasar
 from typing import Dict
 from toolz.functoolz import thread_first
@@ -106,6 +107,9 @@ def translate(c: pyzx.Circuit) -> quasar.Circuit:
     """
     Native-to-native translation
     """
-    return thread_first(c, pyzx_dialect.native_to_ir,
-                        lambda x: simple_translate(translation_set(), x),
-                        quasar_dialect.ir_to_native)
+    try:
+        return thread_first(c, pyzx_dialect.native_to_ir,
+                       lambda x: simple_translate(translation_set(), x),
+                       quasar_dialect.ir_to_native)
+    except PreconditionError:
+        raise TransationException(audit(c))

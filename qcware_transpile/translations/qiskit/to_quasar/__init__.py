@@ -6,9 +6,10 @@ from qcware_transpile.matching import (TranslationRule, TranslationSet,
 from qcware_transpile.dialects import quasar as quasar_dialect, qiskit as qiskit_dialect
 import qiskit
 from qcware_transpile.circuits import Circuit
+from qcware_transpile import TranslationException
 from qcware_transpile.instructions import Instruction
 from pyrsistent import pset
-from dpcontracts import require
+from dpcontracts import require, PreconditionError
 import quasar
 from toolz.functoolz import thread_first
 
@@ -132,6 +133,9 @@ def translate(c: qiskit.QuantumCircuit) -> quasar.Circuit:
     """
     Native-to-native translation
     """
-    return thread_first(c, qiskit_dialect.native_to_ir,
-                        lambda x: simple_translate(translation_set(), x),
-                        quasar_dialect.ir_to_native)
+    try:
+        return thread_first(c, qiskit_dialect.native_to_ir,
+                            lambda x: simple_translate(translation_set(), x),
+                            quasar_dialect.ir_to_native)
+    except PreconditionError:
+        raise TranslationException(audit(c))
