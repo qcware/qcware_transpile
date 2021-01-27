@@ -3,13 +3,14 @@ from hypothesis.strategies import (lists, integers, composite, sampled_from,
                                    floats, tuples)
 import qiskit  # type: ignore
 from qcware_transpile.dialects.qiskit.qiskit_dialect import (dialect,
-                                                             gate_names)
+                                                             gate_names,
+                                                             name_to_class)
 
 
 @composite
 def gates(draw, gate_list=sorted(dialect().gate_defs)):
     gate_def = draw(sampled_from(gate_list))
-    gate_class = getattr(qiskit.circuit.library, gate_def.name)
+    gate_class = name_to_class()[gate_def.name]
     kwargs = {}
     angles = floats(min_value=0, max_value=2 * math.pi)
     for p in gate_def.parameter_names:
@@ -18,13 +19,18 @@ def gates(draw, gate_list=sorted(dialect().gate_defs)):
     try:
         result = gate_class(**kwargs)
     except Exception as e:
-        print(f"Exception creating gate {gate_def.name} with parms {kwargs}")
+        print(f"Exception creating gate {gate_def.name}, class {gate_class.__name__} with parms {kwargs}")
         raise e
     return result
 
 
 @composite
-def circuits(draw, min_qubits, max_qubits, min_length, max_length, gates=gates()):
+def circuits(draw,
+             min_qubits,
+             max_qubits,
+             min_length,
+             max_length,
+             gates=gates()):
     length = draw(integers(min_value=min_length, max_value=max_length))
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
     qr = qiskit.QuantumRegister(num_qubits)

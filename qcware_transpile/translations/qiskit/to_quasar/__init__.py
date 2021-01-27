@@ -22,14 +22,14 @@ def translation_set():
     """
     Creates a translation set from quasar to qiskit
     """
-    trivial_gates = {('IGate', 'I'), ('HGate', 'H'), ('XGate', 'X'),
-                     ('YGate', 'Y'), ('ZGate', 'Z'), ('SGate', 'S'),
-                     ('TGate', 'T'), ('CXGate', 'CX'), ('CYGate', 'CY'),
-                     ('CZGate', 'CZ'), ('CCXGate', 'CCX'),
-                     ('SwapGate', 'SWAP'), ('U1Gate', 'u1'),
-                     ('CSwapGate', 'CSWAP'), ('RXGate', 'Rx', half_angle),
-                     ('RYGate', 'Ry', half_angle),
-                     ('RZGate', 'Rz', half_angle)}
+    trivial_gates = {('id', 'I'), ('h', 'H'), ('x', 'X'),
+                     ('y', 'Y'), ('z', 'Z'), ('s', 'S'),
+                     ('t', 'T'), ('cx', 'CX'), ('cy', 'CY'),
+                     ('cz', 'CZ'), ('ccx', 'CCX'),
+                     ('swap', 'SWAP'), ('u1', 'u1'),
+                     ('cswap', 'CSWAP'), ('rx', 'Rx', half_angle),
+                     ('ry', 'Ry', half_angle),
+                     ('rz', 'Rz', half_angle)}
 
     quasar_d = quasar_dialect.dialect()
     qiskit_d = qiskit_dialect.dialect()
@@ -40,7 +40,7 @@ def translation_set():
         TranslationRule(pattern=Circuit.from_instructions(
             dialect_name=qiskit_d.name,
             instructions=[
-                Instruction(gate_def=qiskit_d.gate_named('U2Gate'),
+                Instruction(gate_def=qiskit_d.gate_named('u2'),
                             parameter_bindings={},
                             bit_bindings=[0])
             ]),
@@ -59,7 +59,7 @@ def translation_set():
         TranslationRule(pattern=Circuit.from_instructions(
             dialect_name=qiskit_d.name,
             instructions=[
-                Instruction(gate_def=qiskit_d.gate_named('U3Gate'),
+                Instruction(gate_def=qiskit_d.gate_named('u3'),
                             parameter_bindings={},
                             bit_bindings=[0])
             ]),

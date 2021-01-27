@@ -3,7 +3,7 @@ from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
-from pyrsistent import pset
+from pyrsistent import pset, pmap
 from pyrsistent.typing import PSet, PMap
 from typing import Tuple, Any, Set, Generator, List, Dict
 from inspect import isclass, signature
@@ -25,6 +25,19 @@ def qiskit_gatethings() -> PSet[Any]:
         for x in possible_things
         if isclass(x) and issubclass(x, qiskit.circuit.Gate)
     })
+
+
+@lru_cache(1)
+def name_to_class() -> PMap[str, type]:
+    return pmap({gatething_name(c): c for c in attempt_gatedefs()[2]})
+
+
+@lru_cache(1)
+def class_to_name() -> PMap[type, str]:
+    """
+    Returns a map of classes to qiskit names
+    """
+    return pmap({c: gatething_name(c) for c in attempt_gatedefs()[2]})
 
 
 def parameter_names_from_gatething(thing: qiskit.circuit.Gate) -> PSet[str]:
@@ -54,9 +67,24 @@ def number_of_qubits_from_gatething(thing: qiskit.circuit.Gate) -> int:
     return g.num_qubits
 
 
+def gatething_name(thing: type) -> str:
+    """Attempts to get the qiskit "name" from a qiskit gate class.  This
+    is a mild irritation-- qiskit does a few things like lists of basis
+    gates and transpilation targets through the "name" of a gate
+    rather than the gate class.  That's fine, but the problem is you
+    have to create an instance of the gate to get its "name"
+    """
+    parameter_names = parameter_names_from_gatething(thing)
+    # we're so far assuming it's ok to call gate instantiation with
+    # all parameters being the float 0
+    parameters = {name: 0 for name in parameter_names}
+    gate = thing(**parameters)
+    return gate.name
+
+
 def gatedef_from_gatething(thing) -> GateDef:
     return GateDef(
-        name=thing.__name__,
+        name=gatething_name(thing),
         parameter_names=parameter_names_from_gatething(thing),  # type: ignore
         qubit_ids=number_of_qubits_from_gatething(thing))
 
@@ -64,16 +92,18 @@ def gatedef_from_gatething(thing) -> GateDef:
 # some gates are problematic -- in particular Qiskit's "gates" which
 # really just generate other gates, for example those which take a
 # number of bits as an argument.  for now we are disabling those
-Problematic_gatenames = pset({"MSGate"})
+Problematic_gatenames = pset({"ms"})  # MSGate seems to be problematic
 
 
-def attempt_gatedefs() -> Tuple[PSet[GateDef], PSet[str]]:
+@lru_cache(1)
+def attempt_gatedefs() -> Tuple[PSet[GateDef], PSet[str], PSet[type]]:
     """
     Iterate through all the gate definitions and build a set of successful
     gate definitions and a list of things which could not be converted
     """
     all_things = qiskit_gatethings()
     success = set()
+    successful_things = set()
     failure = set()
     for thing in all_things:
         try:
@@ -82,14 +112,14 @@ def attempt_gatedefs() -> Tuple[PSet[GateDef], PSet[str]]:
                 failure.add(thing.__name__)
             else:
                 success.add(gd)
+                successful_things.add(thing)
         except Exception:
             failure.add(thing.__name__)
-    return (pset(success), pset(failure))
+    return (pset(success), pset(failure), pset(successful_things))
 
 
 def gate_defs() -> PSet[GateDef]:
-    s, f = attempt_gatedefs()
-    return s
+    return attempt_gatedefs()[0]
 
 
 def gate_names() -> PSet[str]:
@@ -131,7 +161,7 @@ def native_instructions(
 
 
 @require('gate name must be valid',
-         lambda args: args.gate.__class__.__name__ in valid_gatenames())
+         lambda args: args.gate.name in valid_gatenames())
 def ir_instruction_from_native(
         gate: qiskit.circuit.Gate,
         qubits: List[qiskit.circuit.Qubit]) -> Instruction:
@@ -159,7 +189,7 @@ def qiskit_gate_from_instruction(i: Instruction):
     """
     Create a qiskit Gate object from an instruction
     """
-    gclass = getattr(qiskit.circuit.library, i.gate_def.name)
+    gclass = name_to_class()[i.gate_def.name]
     gate = gclass(**i.parameter_bindings)
     return gate
 
@@ -207,8 +237,8 @@ def audit(c: qiskit.QuantumCircuit) -> Dict:
 
     invalid_gate_names = set()
     for g, qubits in native_instructions(c):
-        if g.__class__.__name__ not in valid_gatenames():
-            invalid_gate_names.add(g.__class__.__name__)
+        if g.name not in valid_gatenames():
+            invalid_gate_names.add(gatething_name(g))
     result = {}
     if len(invalid_gate_names) > 0:
         result['invalid_gate_names'] = invalid_gate_names

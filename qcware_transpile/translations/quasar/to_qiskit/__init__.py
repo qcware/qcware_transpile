@@ -23,14 +23,14 @@ def translation_set():
     """
     Creates a translation set from quasar to qiskit
     """
-    trivial_gates = {('I', 'IGate'), ('H', 'HGate'), ('X', 'XGate'),
-                     ('Y', 'YGate'), ('Z', 'ZGate'), ('S', 'SGate'),
-                     ('T', 'TGate'), ('CX', 'CXGate'), ('CY', 'CYGate'),
-                     ('CZ', 'CZGate'), ('CCX', 'CCXGate'), ('u1', 'U1Gate'),
-                     ('SWAP', 'SwapGate'), ('CSWAP', 'CSwapGate'),
-                     ('Rx', 'RXGate', double_angle),
-                     ('Ry', 'RYGate', double_angle),
-                     ('Rz', 'RZGate', double_angle)}
+    trivial_gates = {('I', 'id'), ('H', 'h'), ('X', 'x'),
+                     ('Y', 'y'), ('Z', 'z'), ('S', 's'),
+                     ('T', 't'), ('CX', 'cx'), ('CY', 'cy'),
+                     ('CZ', 'cz'), ('CCX', 'ccx'), ('u1', 'u1'),
+                     ('SWAP', 'swap'), ('CSWAP', 'cswap'),
+                     ('Rx', 'rx', double_angle),
+                     ('Ry', 'ry', double_angle),
+                     ('Rz', 'rz', double_angle)}
 
     quasar_d = quasar_dialect.dialect()
     qiskit_d = qiskit_dialect.dialect()
@@ -38,11 +38,11 @@ def translation_set():
         TranslationRule(
             pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]),
             replacement=Circuit.from_tuples(
-                qiskit_d, [('CXGate', {}, [1, 0]),
-                           ('CRYGate', {
+                qiskit_d, [('cx', {}, [1, 0]),
+                           ('cry', {
                                'theta': lambda pm: double_angle(pm[
                                    (0, 'theta')])
-                           }, [0, 1]), ('CXGate', {}, [1, 0])]))
+                           }, [0, 1]), ('cx', {}, [1, 0])]))
     }
     # the U2/U3 rules are disabled for now as they seem to be problematic
     # in qiskit when comparing resultant statevectors
@@ -50,14 +50,14 @@ def translation_set():
         TranslationRule(pattern=Circuit.from_tuples(quasar_d,
                                                     [('u2', {}, [0])]),
                         replacement=Circuit.from_tuples(
-                            qiskit_d, [('U2Gate', {
+                            qiskit_d, [('u2', {
                                 'phi': lambda pm: pm[(0, 'phi')],
                                 'lam': lambda pm: pm[(0, 'lam')]
                             }, [0])])),
         TranslationRule(pattern=Circuit.from_tuples(quasar_d,
                                                     [('u3', {}, [0])]),
                         replacement=Circuit.from_tuples(
-                            qiskit_d, [('U3Gate', {
+                            qiskit_d, [('u3', {
                                 'theta': lambda pm: pm[(0, 'theta')],
                                 'phi': lambda pm: pm[(0, 'phi')],
                                 'lam': lambda pm: pm[(0, 'lam')]
