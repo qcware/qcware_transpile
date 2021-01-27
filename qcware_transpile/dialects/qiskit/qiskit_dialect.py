@@ -9,6 +9,7 @@ from typing import Tuple, Any, Set, Generator, List, Dict
 from inspect import isclass, signature
 import numpy as np  # type: ignore
 from functools import lru_cache
+from itertools import accumulate
 from dpcontracts import require
 
 __dialect_name__ = "qiskit"
@@ -152,32 +153,51 @@ def native_instructions(
 ) -> Generator[Tuple[qiskit.circuit.Gate, List[qiskit.circuit.Qubit]], None,
                None]:
     """
-    Iterates (in reverse) over the circuit
+    Iterates over the circuit.  Does *NOT* reverse the circuit beforehand,
+    because that elides the reversed qregs for mapping
     """
-    rqc = qc.reverse_bits()
-    for (instruction, qubits, cbits) in rqc.data:
+    for (instruction, qubits, cbits) in qc.data:
         if (len(cbits) == 0):
             yield instruction, qubits
+
+
+@require("qubit's qreg must be in register list",
+         lambda args: args.qubit.register in args.qregs)
+def raw_qubit_index(qubit: qiskit.circuit.Qubit,
+                    qregs: List[qiskit.circuit.QuantumRegister]) -> int:
+    """
+    Given a qubit object and a list of quantum registers, 
+    calculates the "Raw qubit index"
+    """
+    # first create a quick list of "starting qubits"
+    # ie if qregs = [QuantumRegister(2,'q1'), QuantumRegister(1,'q2')]
+    # then the starting-qubits would be [0, 2], and a qubit
+    # of Qubit(QuantumRegister(1, 'q2'), 0) would have a raw qubit index
+    # of 2 + 0 = 2
+    starting_qubits = list(
+        accumulate(qregs, lambda x, y: x + y.size, initial=0))[0:-1]
+    return starting_qubits[qregs.index(qubit.register)] + qubit.index
 
 
 @require('gate name must be valid',
          lambda args: args.gate.name in valid_gatenames())
 def ir_instruction_from_native(
-        gate: qiskit.circuit.Gate,
-        qubits: List[qiskit.circuit.Qubit]) -> Instruction:
+        gate: qiskit.circuit.Gate, qubits: List[qiskit.circuit.Qubit],
+        qregs: List[qiskit.circuit.QuantumRegister]) -> Instruction:
     return Instruction(
         gate_def=gatedef_from_gatething(gate.__class__),
         parameter_bindings=parameter_bindings_from_gate(gate),  # type: ignore
-        bit_bindings=[qb.index for qb in qubits])
+        bit_bindings=[raw_qubit_index(qb, qregs) for qb in qubits])
 
 
 def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
     """
     Return a transpile-style Circuit object from a qiskit Circuit object
     """
+    rqc = qc.reverse_bits()
     instructions = list(
-        ir_instruction_from_native(x[0], x[1])
-        for x in native_instructions(qc))
+        ir_instruction_from_native(x[0], x[1], rqc.qregs)
+        for x in native_instructions(rqc))
     qubits = list(range(qc.num_qubits))
     return Circuit(
         dialect_name=__dialect_name__,

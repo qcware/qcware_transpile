@@ -19,8 +19,23 @@ def gates(draw, gate_list=sorted(dialect().gate_defs)):
     try:
         result = gate_class(**kwargs)
     except Exception as e:
-        print(f"Exception creating gate {gate_def.name}, class {gate_class.__name__} with parms {kwargs}")
+        print(
+            f"Exception creating gate {gate_def.name}, class {gate_class.__name__} with parms {kwargs}"
+        )
         raise e
+    return result
+
+
+@composite
+def qreg_sizes(draw, num_qubits):
+    """
+    Make a list of quantum register sizes, the sizes of which sum to num_qubits
+    """
+    result = []
+    while num_qubits > 0:
+        i = draw(integers(min_value=1, max_value=num_qubits))
+        result.append(i)
+        num_qubits = num_qubits - i
     return result
 
 
@@ -33,13 +48,13 @@ def circuits(draw,
              gates=gates()):
     length = draw(integers(min_value=min_length, max_value=max_length))
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
-    qr = qiskit.QuantumRegister(num_qubits)
+    qregs = [qiskit.QuantumRegister(i) for i in draw(qreg_sizes(num_qubits))]
 
     circuit_gates = draw(
         lists(gates, min_size=length, max_size=length).filter(
             lambda x: all([y.num_qubits <= num_qubits for y in x])))
 
-    result = qiskit.QuantumCircuit(qr)
+    result = qiskit.QuantumCircuit(*qregs)
     for gate in circuit_gates:
         qubits = draw(
             lists(integers(min_value=0, max_value=num_qubits - 1),
@@ -50,4 +65,4 @@ def circuits(draw,
     return result
 
 
-# circuits(1,3,1,5).example()
+circuits(1,3,1,5).example()

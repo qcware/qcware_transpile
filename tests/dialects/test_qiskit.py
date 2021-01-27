@@ -9,5 +9,7 @@ from hypothesis import given, note, settings
 def test_conversion(qc):
     note(qc.draw())
     c = native_to_ir(qc)
+    note(c)
     qc2 = ir_to_native(c)
+    note(qc2.draw())
     assert native_circuits_are_equivalent(qc, qc2)
