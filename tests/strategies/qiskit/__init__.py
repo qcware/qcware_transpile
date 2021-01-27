@@ -65,4 +65,4 @@ def circuits(draw,
     return result
 
 
-circuits(1,3,1,5).example()
+# circuits(1,3,1,5).example()

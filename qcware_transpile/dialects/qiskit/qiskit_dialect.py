@@ -92,8 +92,10 @@ def gatedef_from_gatething(thing) -> GateDef:
 
 # some gates are problematic -- in particular Qiskit's "gates" which
 # really just generate other gates, for example those which take a
-# number of bits as an argument.  for now we are disabling those
-Problematic_gatenames = pset({"ms"})  # MSGate seems to be problematic
+# number of bits as an argument.  for now we are disabling those.
+# we also disable some gates which resolve to identical "names"
+# such as C3XGate and C4XGate
+Problematic_gatenames = pset({"ms", "mcx"})
 
 
 @lru_cache(1)
@@ -142,7 +144,13 @@ def valid_gatenames() -> Set[str]:
 
 
 def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:
-    values = gate.params
+    # sometimes transpile makes ParameterExpressions and here we try to
+    # coerce those into floats... which may not always be the right idea
+    values = [
+        x
+        if not isinstance(x, qiskit.circuit.ParameterExpression) else float(x)
+        for x in gate.params
+    ]
     names = [k for k, v in signature(gate.__init__).parameters.items()
              ][0:len(values)]
     return map_seq_to_seq_unique(names, values)

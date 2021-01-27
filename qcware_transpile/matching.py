@@ -2,6 +2,7 @@
 Files for defining gates, gate definitions, and the like
 """
 from dpcontracts import require, ensure  # type: ignore
+from qcware_transpile.exceptions import TranslationException
 import attr
 from pyrsistent.typing import PSet
 from pyrsistent import pset
@@ -198,7 +199,10 @@ def translationset_replace_circuit(ts: TranslationSet,
     """
     # choose an arbitrary matching rule
     rule = list(matching_rules(ts, target))[0]
-    return translation_replace_circuit(rule, target)
+    if not circuit_is_valid_executable(target):
+        raise TranslationException(audit={"nonexecutable_target": target})
+    result = translation_replace_circuit(rule, target)
+    return result
 
 
 @require("Circuit must belong to the translation set 'from' dialect",
