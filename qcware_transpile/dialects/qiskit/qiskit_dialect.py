@@ -182,6 +182,8 @@ def raw_qubit_index(qubit: qiskit.circuit.Qubit,
     # then the starting-qubits would be [0, 2], and a qubit
     # of Qubit(QuantumRegister(1, 'q2'), 0) would have a raw qubit index
     # of 2 + 0 = 2
+    # note: it would probably be better to use the qiskit circuit.qubits
+    # list for indexing; this tests correct so will not be changed yet
     starting_qubits = list(
         accumulate(qregs, lambda x, y: x + y.size, initial=0))[0:-1]
     return starting_qubits[qregs.index(qubit.register)] + qubit.index
