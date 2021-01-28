@@ -8,7 +8,7 @@ from pyrsistent.typing import PSet
 from pyrsistent import pset
 from typing import Callable, Optional, Tuple
 from qcware_transpile.helpers import map_seq_to_seq_unique
-from qcware_transpile.instructions import Instruction, remapped_instruction
+from qcware_transpile.instructions import Instruction, remapped_instruction, audit_instruction_for_executable
 from qcware_transpile.gates import Dialect, GateDef
 from qcware_transpile.circuits import (
     Circuit, circuit_bit_targets, circuit_is_valid_replacement,
@@ -200,7 +200,13 @@ def translationset_replace_circuit(ts: TranslationSet,
     # choose an arbitrary matching rule
     rule = list(matching_rules(ts, target))[0]
     if not circuit_is_valid_executable(target):
-        raise TranslationException(audit={"nonexecutable_target": target})
+        audit = {"nonexecutable_target": target}
+        instruction_audits = [
+            audit_instruction_for_executable(i) for i in target.instructions
+        ]
+        audit[
+            'nonexecutable_instructions'] = instruction_audits  # type: ignore
+        raise TranslationException(audit=audit)
     result = translation_replace_circuit(rule, target)
     return result
 

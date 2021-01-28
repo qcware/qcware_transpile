@@ -26,9 +26,9 @@ def translation_set():
     trivial_gates = {('id', 'I'), ('h', 'H'), ('x', 'X'), ('y', 'Y'),
                      ('z', 'Z'), ('s', 'S'), ('t', 'T'), ('cx', 'CX'),
                      ('cy', 'CY'), ('cz', 'CZ'), ('ccx', 'CCX'),
-                     ('swap', 'SWAP'), ('u1', 'u1'), ('cswap', 'CSWAP'),
+                     ('swap', 'SWAP'), ('cswap', 'CSWAP'),
                      ('rx', 'Rx', half_angle), ('ry', 'Ry', half_angle),
-                     ('rz', 'Rz', half_angle)}
+                     ('rz', 'Rz', half_angle)} #('u1', 'u1')
 
     quasar_d = quasar_dialect.dialect()
     qiskit_d = qiskit_dialect.dialect()

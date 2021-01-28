@@ -6,6 +6,7 @@ from .gates import GateDef, _qubit_ids
 from .helpers import map_seq_to_seq
 from inspect import signature
 from fractions import Fraction
+import numpy
 
 
 @attr.s(frozen=True)
@@ -57,7 +58,7 @@ def _is_valid_executable_parameter_value(v: Any) -> bool:
     """
     whether the instruction parameter is valid for execution (is numeric)
     """
-    return type(v) in {int, float, complex, bool, Fraction}
+    return numpy.isscalar(v)
 
 
 def _is_valid_replacement_parameter_value(v: Any) -> bool:
@@ -69,7 +70,24 @@ def _is_valid_replacement_parameter_value(v: Any) -> bool:
     return ((isinstance(v, tuple) and isinstance(v[0], int)
              and isinstance(v[1], str))
             or (callable(v) and len(signature(v).parameters) == 1)
-            or (type(v) in {int, float, complex, bool}))
+            or (numpy.isscalar(v)))
+
+
+def audit_instruction_for_executable(i: Instruction) -> PMap:
+    """
+    Here to give more information about why an instruction isn't executable
+    """
+    result = {}
+    if not instruction_parameters_are_fully_bound(i):
+        result['instruction_parameters_not_fully_bound'] = True
+    invalid_bindings = {
+        k: (v, type(v))
+        for k, v in i.parameter_bindings.items()
+        if not _is_valid_executable_parameter_value(v)
+    }
+    if len(invalid_bindings) > 0:
+        result['invalid parameter bindings'] = invalid_bindings # type: ignore
+    return pmap(result)
 
 
 def instruction_is_valid_executable(i: Instruction) -> bool:
@@ -173,6 +191,7 @@ def remapped_instruction(qubit_map: Mapping[int, int],
         for k, v in target.parameter_bindings.items()
     }
     new_bit_bindings = [qubit_map[b] for b in target.bit_bindings]
-    return Instruction(gate_def=target.gate_def,
-                       parameter_bindings=new_parameters,  # type: ignore
-                       bit_bindings=new_bit_bindings)
+    return Instruction(
+        gate_def=target.gate_def,
+        parameter_bindings=new_parameters,  # type: ignore
+        bit_bindings=new_bit_bindings)
