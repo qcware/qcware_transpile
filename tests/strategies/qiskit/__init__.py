@@ -48,20 +48,30 @@ def circuits(draw,
              gates=gates()):
     length = draw(integers(min_value=min_length, max_value=max_length))
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
+    num_clbits = draw(integers(min_value=min_qubits, max_value=max_qubits))
     qregs = [qiskit.QuantumRegister(i) for i in draw(qreg_sizes(num_qubits))]
 
     circuit_gates = draw(
         lists(gates, min_size=length, max_size=length).filter(
             lambda x: all([y.num_qubits <= num_qubits for y in x])))
 
-    result = qiskit.QuantumCircuit(*qregs)
+    if num_clbits > 0:
+        cr = qiskit.ClassicalRegister(num_clbits)
+        result = qiskit.QuantumCircuit(*qregs, cr)
+    else:
+        result = qiskit.QuantumCircuit(*qregs)
     for gate in circuit_gates:
         qubits = draw(
             lists(integers(min_value=0, max_value=num_qubits - 1),
                   min_size=gate.num_qubits,
                   max_size=gate.num_qubits,
                   unique=True))
-        result.append(gate, tuple(qubits))
+        # manually muck about with measure
+        if gate.name == 'measure':
+            this_clbit = draw(integers(min_value=0, max_value=num_clbits - 1))
+            result.append(gate, tuple(qubits), tuple([this_clbit]))
+        else:
+            result.append(gate, tuple(qubits))
     return result
 
 
