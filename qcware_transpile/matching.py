@@ -32,9 +32,9 @@ class TranslationRule(object):
         # replacement must address the same bits as pattern
         pattern_bits = circuit_bit_targets(self.pattern)
         replacement_bits = circuit_bit_targets(self.replacement)
-        if set(pattern_bits) != set(replacement_bits):
+        if len(replacement_bits) > 0 and set(pattern_bits) != set(replacement_bits):
             raise ValueError(
-                "pattern and replacement must target the same set of bits")
+                f"pattern and replacement must target the same set of bits ({pattern_bits}!={replacement_bits})")
         # replacement values must either be values or keys into pattern
         if not circuit_is_valid_replacement(self.replacement):
             raise ValueError(

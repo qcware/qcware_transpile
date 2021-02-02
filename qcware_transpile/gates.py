@@ -15,12 +15,15 @@ def _qubit_ids(qubits: Union[int, Sequence[int]]):
 class GateDef(object):
     """
     A gate definition, consisting only of a name, a set of names
-    for parameters, and an ordered collection of integer qubit IDs
+    for parameters, and an ordered collection of integer qubit IDs.
+
+    GateDefs can also support variable numbers of qubit args if 
+    varargs == true.  This is not currently exploited
     """
     name = attr.ib(type=str)
     parameter_names = attr.ib(type=Set[str], converter=pset)
     qubit_ids = attr.ib(type=Sequence[int], converter=_qubit_ids)
-
+    has_varargs = attr.ib(type=bool, default=False)
     def __str__(self):
         return "".join([self.name, "("] +
                        [",".join([s

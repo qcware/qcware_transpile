@@ -20,6 +20,12 @@ class Instruction(object):
     parameter_bindings = attr.ib(type=PMap[str, Any],
                                  default=pmap(),
                                  converter=pmap)
+    # 'metadata' contains extra information not necessarily
+    # understood by translations, such as "classical bit" arguments,
+    # etc. which are not normally "part" of a quantum circuit.
+    metadata = attr.ib(type=PMap[str, Any],
+                       default=pmap(),
+                       converter=pmap)
 
     @parameter_bindings.validator
     def check_parameter_bindings(self, attribute, value):
@@ -38,7 +44,8 @@ class Instruction(object):
         parameter_bindings_str = ",".join(
             [f"{k}={v}" for k, v in self.parameter_bindings.items()])
         bit_bindings_str = ",".join([f"{x}" for x in self.bit_bindings])
-        return f"{self.gate_def.name}({parameter_bindings_str}), ({bit_bindings_str}))"
+        metadata = "" if len(self.metadata) == 0 else ", (" + ",".join(["{k}={v}" for k,v in self.metadata.items()]) + ")"
+        return f"{self.gate_def.name}({parameter_bindings_str}), ({bit_bindings_str}){metadata})"
 
 
 def instruction_parameters_are_fully_bound(i: Instruction) -> bool:
