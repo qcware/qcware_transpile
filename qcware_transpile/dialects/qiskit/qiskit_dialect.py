@@ -3,7 +3,7 @@ from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
-from pyrsistent import pset, pmap
+from pyrsistent import pset, pmap, pvector
 from pyrsistent.typing import PSet, PMap
 from typing import Tuple, Any, Set, Generator, List, Dict
 from inspect import isclass, signature
@@ -209,8 +209,9 @@ def ir_instruction_from_native(
         gate_def=gatedef_from_gatething(gate.__class__),
         parameter_bindings=parameter_bindings_from_gate(gate),  # type: ignore
         bit_bindings=[raw_qubit_index(qb, circuit_qubits) for qb in qubits],
+        # this below must be a pvector to handle some hashing
         metadata={
-            'clbits': [raw_clbit_index(cb, circuit_clbits) for cb in clbits]
+            'clbits': pvector([raw_clbit_index(cb, circuit_clbits) for cb in clbits])
         } if len(clbits) > 0 else {})
 
 
@@ -245,7 +246,9 @@ def ir_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     # qiskit wants the number of qubits first.
     num_qubits = max(c.qubits) - min(c.qubits) + 1
     _clbits = clbits(c)
-    num_clbits = 0 if len(_clbits) == 0 else max(_clbits) - min(_clbits) + 1
+    # this is slightly different because we only list classical bits used and assume
+    # they start from 0 without checking for unused edge bits.
+    num_clbits = 0 if len(_clbits) == 0 else max(_clbits) + 1 #  - min(_clbits) + 1
     result = qiskit.QuantumCircuit(
         num_qubits) if num_clbits == 0 else qiskit.QuantumCircuit(
             num_qubits, num_clbits)
