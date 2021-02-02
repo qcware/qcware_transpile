@@ -3,7 +3,7 @@ from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
-from pyrsistent import pset, pmap
+from pyrsistent import pset, pmap, pvector
 from pyrsistent.typing import PSet, PMap
 from typing import Tuple, Any, Set, Generator, List, Dict
 from inspect import isclass, signature
@@ -24,7 +24,7 @@ def qiskit_gatethings() -> PSet[Any]:
     return pset({
         x
         for x in possible_things
-        if isclass(x) and issubclass(x, qiskit.circuit.Gate)
+        if isclass(x) and issubclass(x, qiskit.circuit.Instruction)
     })
 
 
@@ -95,7 +95,7 @@ def gatedef_from_gatething(thing) -> GateDef:
 # number of bits as an argument.  for now we are disabling those.
 # we also disable some gates which resolve to identical "names"
 # such as C3XGate and C4XGate
-Problematic_gatenames = pset({"ms", "mcx"})
+Problematic_gatenames = pset({"ms", "mcx", "barrier"})
 
 
 @lru_cache(1)
@@ -164,38 +164,55 @@ def native_instructions(
     Iterates over the circuit.  Does *NOT* reverse the circuit beforehand,
     because that elides the reversed qregs for mapping
     """
-    for (instruction, qubits, cbits) in qc.data:
-        if (len(cbits) == 0):
-            yield instruction, qubits
+    for (instruction, qubits, clbits) in qc.data:
+        yield instruction, qubits, clbits
 
 
-@require("qubit's qreg must be in register list",
-         lambda args: args.qubit.register in args.qregs)
+@require("qubit must be in qubit list", lambda args: args.qubit in args.qubits)
 def raw_qubit_index(qubit: qiskit.circuit.Qubit,
-                    qregs: List[qiskit.circuit.QuantumRegister]) -> int:
+                    qubits: List[qiskit.circuit.Qubit]) -> int:
     """
     Given a qubit object and a list of quantum registers, 
     calculates the "Raw qubit index"
     """
-    # first create a quick list of "starting qubits"
-    # ie if qregs = [QuantumRegister(2,'q1'), QuantumRegister(1,'q2')]
-    # then the starting-qubits would be [0, 2], and a qubit
-    # of Qubit(QuantumRegister(1, 'q2'), 0) would have a raw qubit index
-    # of 2 + 0 = 2
-    starting_qubits = list(
-        accumulate(qregs, lambda x, y: x + y.size, initial=0))[0:-1]
-    return starting_qubits[qregs.index(qubit.register)] + qubit.index
+    return qubits.index(qubit)
+
+
+@require("clbit must be in clbit list", lambda args: args.clbit in args.clbits)
+def raw_clbit_index(clbit: qiskit.circuit.Clbit,
+                    clbits: List[qiskit.circuit.Clbit]) -> int:
+    """
+    Given a qubit object and a list of quantum registers, 
+    calculates the "Raw qubit index"
+    """
+    return clbits.index(clbit)
+
+
+def clbits(circuit: Circuit):
+    """
+    A sorted list of the classical bit ids in the IR representation; used
+    for reconstruction of a qiskit circuit to/from IR, with difficulties
+    """
+    return list(
+        sorted(set().union(
+            *[x.metadata.get('clbits', []) for x in circuit.instructions])))
 
 
 @require('gate name must be valid',
          lambda args: args.gate.name in valid_gatenames())
 def ir_instruction_from_native(
         gate: qiskit.circuit.Gate, qubits: List[qiskit.circuit.Qubit],
-        qregs: List[qiskit.circuit.QuantumRegister]) -> Instruction:
+        clbits: List[qiskit.circuit.Clbit],
+        circuit_qubits: List[qiskit.circuit.Qubit],
+        circuit_clbits: List[qiskit.circuit.Clbit]) -> Instruction:
     return Instruction(
         gate_def=gatedef_from_gatething(gate.__class__),
         parameter_bindings=parameter_bindings_from_gate(gate),  # type: ignore
-        bit_bindings=[raw_qubit_index(qb, qregs) for qb in qubits])
+        bit_bindings=[raw_qubit_index(qb, circuit_qubits) for qb in qubits],
+        # this below must be a pvector to handle some hashing
+        metadata={
+            'clbits': pvector([raw_clbit_index(cb, circuit_clbits) for cb in clbits])
+        } if len(clbits) > 0 else {})
 
 
 def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
@@ -204,7 +221,7 @@ def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
     """
     rqc = qc.reverse_bits()
     instructions = list(
-        ir_instruction_from_native(x[0], x[1], rqc.qregs)
+        ir_instruction_from_native(x[0], x[1], x[2], rqc.qubits, rqc.clbits)
         for x in native_instructions(rqc))
     qubits = list(range(qc.num_qubits))
     return Circuit(
@@ -228,11 +245,20 @@ def ir_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     """
     # qiskit wants the number of qubits first.
     num_qubits = max(c.qubits) - min(c.qubits) + 1
-    qr = qiskit.QuantumRegister(num_qubits)
-    result = qiskit.QuantumCircuit(qr)
+    _clbits = clbits(c)
+    # this is slightly different because we only list classical bits used and assume
+    # they start from 0 without checking for unused edge bits.
+    num_clbits = 0 if len(_clbits) == 0 else max(_clbits) + 1 #  - min(_clbits) + 1
+    result = qiskit.QuantumCircuit(
+        num_qubits) if num_clbits == 0 else qiskit.QuantumCircuit(
+            num_qubits, num_clbits)
     for instruction in c.instructions:
         g = qiskit_gate_from_instruction(instruction)
-        result.append(g, instruction.bit_bindings)
+        if 'clbits' in instruction.metadata:
+            result.append(g, instruction.bit_bindings,
+                          instruction.metadata['clbits'])
+        else:
+            result.append(g, instruction.bit_bindings)
     result = result.reverse_bits()
     return result
 
@@ -256,22 +282,22 @@ def audit(c: qiskit.QuantumCircuit) -> Dict:
     convertible to the IR
     """
     # check for classical instructions
-    unhandled_classical_instructions = set()
-    rqc = c.reverse_bits()
-    for (instruction, qubits, cbits) in rqc.data:
-        if (len(cbits) != 0):
-            unhandled_classical_instructions.add(
-                instruction.__class__.__name__)
+    # unhandled_classical_instructions = set()
+    # rqc = c.reverse_bits()
+    # for (instruction, qubits, cbits) in rqc.data:
+    #     if (len(cbits) != 0):
+    #         unhandled_classical_instructions.add(
+    #             instruction.__class__.__name__)
 
     invalid_gate_names = set()
-    for g, qubits in native_instructions(c):
+    for g, qubits, clbits in native_instructions(c):
         if g.name not in valid_gatenames():
             invalid_gate_names.add(gatething_name(g))
     result = {}
     if len(invalid_gate_names) > 0:
         result['invalid_gate_names'] = invalid_gate_names
 
-    if len(unhandled_classical_instructions) != 0:
-        result['unhandled_classical_instructions'] = \
-            unhandled_classical_instructions
+    # if len(unhandled_classical_instructions) != 0:
+    #     result['unhandled_classical_instructions'] = \
+    #         unhandled_classical_instructions
     return result

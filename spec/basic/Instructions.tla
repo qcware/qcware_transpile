@@ -7,7 +7,9 @@ bits in the bits tuple is equal to the number of qubits
 usable by the gate.  We won't play with broadcasting etc here. *)
 
 InstructionsForGate(gate, parameter_values, qubits) ==
-  { << gate, parameter_mappings, bits >> : parameter_mappings \in [gate.parameters -> parameter_values], bits \in UniqSeqsOfLengthN(qubits, NumGateQubits(gate) ) }
+  { << gate, parameter_mappings, bits >> : 
+      parameter_mappings \in [gate.parameters -> parameter_values], 
+      bits \in UniqSeqsOfLengthN(qubits, NumGateQubits(gate) ) }
 
 
 \* And make sets of possible instructions for architecture A and B

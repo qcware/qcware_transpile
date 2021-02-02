@@ -28,54 +28,23 @@ def translation_set():
                      ('cy', 'CY'), ('cz', 'CZ'), ('ccx', 'CCX'),
                      ('swap', 'SWAP'), ('cswap', 'CSWAP'),
                      ('rx', 'Rx', half_angle), ('ry', 'Ry', half_angle),
-                     ('rz', 'Rz', half_angle)} #('u1', 'u1')
+                     ('rz', 'Rz', half_angle)}  #('u1', 'u1')
 
     quasar_d = quasar_dialect.dialect()
     qiskit_d = qiskit_dialect.dialect()
-    # the u2/u3 rules are included but disabled due to flakiness
-    # between quasar and qiskit.  Qiskit appears to be in the wrong
-    # for this.
-    u2u3_rules = {  # noqa F841
+    # u1/u2/u3 rules were included but are disabled as IBM is deprecating
+    # them at some level.  We currently remove measure rules, but cannot
+    # translate reset or barrier rules
+    remove_unsupported_rules = {  # noqa F841
         TranslationRule(pattern=Circuit.from_instructions(
             dialect_name=qiskit_d.name,
             instructions=[
-                Instruction(gate_def=qiskit_d.gate_named('u2'),
+                Instruction(gate_def=qiskit_d.gate_named('measure'),
                             parameter_bindings={},
                             bit_bindings=[0])
             ]),
                         replacement=Circuit.from_instructions(
-                            dialect_name=quasar_d.name,
-                            instructions=[
-                                Instruction(gate_def=quasar_d.gate_named('u2'),
-                                            parameter_bindings={
-                                                'phi': lambda pm: pm[
-                                                    (0, 'phi')],
-                                                'lam': lambda pm: pm[
-                                                    (0, 'lam')]
-                                            },
-                                            bit_bindings=[0])
-                            ])),
-        TranslationRule(pattern=Circuit.from_instructions(
-            dialect_name=qiskit_d.name,
-            instructions=[
-                Instruction(gate_def=qiskit_d.gate_named('u3'),
-                            parameter_bindings={},
-                            bit_bindings=[0])
-            ]),
-                        replacement=Circuit.from_instructions(
-                            dialect_name=quasar_d.name,
-                            instructions=[
-                                Instruction(gate_def=quasar_d.gate_named('u3'),
-                                            parameter_bindings={
-                                                'theta':
-                                                lambda pm: pm[(0, 'theta')],
-                                                'phi':
-                                                lambda pm: pm[(0, 'phi')],
-                                                'lam':
-                                                lambda pm: pm[(0, 'lam')]
-                                            },
-                                            bit_bindings=[0])
-                            ]))
+                            dialect_name=quasar_d.name, instructions=[]))
     }
     rules = pset().union(trivial_rules(qiskit_d, quasar_d, trivial_gates))
     return TranslationSet(from_dialect=qiskit_d,

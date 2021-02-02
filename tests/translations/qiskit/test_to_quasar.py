@@ -32,8 +32,8 @@ def qiskit_probability_vector(circuit: qiskit.QuantumCircuit):
 @given(translatable_circuits)
 @settings(deadline=None)
 def test_translate_qiskit_to_quasar(qiskit_circuit):
-    assume(native_is_translatable(qiskit_circuit))
     note(qiskit_circuit.draw())
+    assume(native_is_translatable(qiskit_circuit))
     quasar_native_circuit = translate(qiskit_circuit, should_transpile=True)
     note(str(quasar_native_circuit))
     pv_quasar = quasar_probability_vector(quasar_native_circuit)

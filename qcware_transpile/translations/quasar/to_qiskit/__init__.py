@@ -45,24 +45,6 @@ def translation_set():
                            }, [0, 1]), ('cx', {}, [1, 0])]))
     }
     # the U2/U3 rules are disabled for now as they seem to be problematic
-    # in qiskit when comparing resultant statevectors
-    u2u3_rules = {  # noqa F841
-        TranslationRule(pattern=Circuit.from_tuples(quasar_d,
-                                                    [('u2', {}, [0])]),
-                        replacement=Circuit.from_tuples(
-                            qiskit_d, [('u2', {
-                                'phi': lambda pm: pm[(0, 'phi')],
-                                'lam': lambda pm: pm[(0, 'lam')]
-                            }, [0])])),
-        TranslationRule(pattern=Circuit.from_tuples(quasar_d,
-                                                    [('u3', {}, [0])]),
-                        replacement=Circuit.from_tuples(
-                            qiskit_d, [('u3', {
-                                'theta': lambda pm: pm[(0, 'theta')],
-                                'phi': lambda pm: pm[(0, 'phi')],
-                                'lam': lambda pm: pm[(0, 'lam')]
-                            }, [0])]))
-    }
 
     rules = pset().union(trivial_rules(quasar_d, qiskit_d,
                                        trivial_gates)).union(other_rules)
