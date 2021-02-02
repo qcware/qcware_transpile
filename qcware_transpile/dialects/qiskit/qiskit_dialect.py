@@ -162,10 +162,14 @@ def native_instructions(
                None]:
     """
     Iterates over the circuit.  Does *NOT* reverse the circuit beforehand,
-    because that elides the reversed qregs for mapping
+    because that elides the reversed qregs for mapping.  We just skip
+    barriers, because they are problematic (they are multi-qubit, which
+    we don't handle well yet, and they are unsupported by any other kit).
     """
+    gates_to_skip = {'barrier'}
     for (instruction, qubits, clbits) in qc.data:
-        yield instruction, qubits, clbits
+        if instruction.name not in gates_to_skip:
+            yield instruction, qubits, clbits
 
 
 @require("qubit must be in qubit list", lambda args: args.qubit in args.qubits)
