@@ -91,14 +91,19 @@ def audit(c: qiskit.QuantumCircuit):
     return result
 
 
+def basis_gates():
+    """The "basis gates" for the quasar backend, according to qiskit
+    """
+    return list({x.name for x in translated_gates(translation_set())})
+
+
 def native_is_translatable(c: qiskit.QuantumCircuit, should_transpile=True):
     """
     A native circuit is translatable to quasar if it has no leading or
     following "empty" qubits as currently there is no way to express this in quasar
     """
-    basis_gates = list({x.name for x in translated_gates(translation_set())})
     c2 = qiskit.compiler.transpile(
-        c, basis_gates=basis_gates) if should_transpile else c.copy()
+        c, basis_gates=basis_gates()) if should_transpile else c.copy()
     return len(audit(c2)) == 0
 
 
