@@ -1,7 +1,6 @@
 from pyrsistent import pvector, pset, pmap
 from pyrsistent.typing import PSet, PMap
-from dpcontracts import require  # type: ignore
-from qcware_transpile.helpers import exists_in
+from icontract import require  # type: ignore
 from typing import Union, Sequence, Set
 import attr
 
@@ -24,6 +23,7 @@ class GateDef(object):
     parameter_names = attr.ib(type=Set[str], converter=pset)
     qubit_ids = attr.ib(type=Sequence[int], converter=_qubit_ids)
     has_varargs = attr.ib(type=bool, default=False)
+
     def __str__(self):
         return "".join([self.name, "("] +
                        [",".join([s
@@ -53,7 +53,6 @@ class Dialect(object):
     def has_gate_named(self, name: str) -> bool:
         return name in self.gate_map
 
-    @require("Dialect must have gate to return it",
-             lambda args: args.self.has_gate_named(args.name))
+    @require(lambda self, name: self.has_gate_named(name))
     def gate_named(self, name: str) -> GateDef:
         return self.gate_map[name]

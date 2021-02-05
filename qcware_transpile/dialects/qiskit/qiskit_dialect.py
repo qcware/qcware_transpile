@@ -10,7 +10,7 @@ from inspect import isclass, signature
 import numpy as np  # type: ignore
 from functools import lru_cache
 from itertools import accumulate
-from dpcontracts import require
+from icontract import require
 
 __dialect_name__ = "qiskit"
 
@@ -158,8 +158,8 @@ def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:
 
 def native_instructions(
     qc: qiskit.QuantumCircuit
-) -> Generator[Tuple[qiskit.circuit.Gate, List[qiskit.circuit.Qubit]], None,
-               None]:
+) -> Generator[Tuple[qiskit.circuit.Gate, List[qiskit.circuit.Qubit],
+                     List[qiskit.circuit.Clbit]], None, None]:
     """
     Iterates over the circuit.  Does *NOT* reverse the circuit beforehand,
     because that elides the reversed qregs for mapping.  We just skip
@@ -172,7 +172,7 @@ def native_instructions(
             yield instruction, qubits, clbits
 
 
-@require("qubit must be in qubit list", lambda args: args.qubit in args.qubits)
+@require(lambda qubit, qubits: qubit in qubits)
 def raw_qubit_index(qubit: qiskit.circuit.Qubit,
                     qubits: List[qiskit.circuit.Qubit]) -> int:
     """
@@ -182,7 +182,7 @@ def raw_qubit_index(qubit: qiskit.circuit.Qubit,
     return qubits.index(qubit)
 
 
-@require("clbit must be in clbit list", lambda args: args.clbit in args.clbits)
+@require(lambda clbit, clbits: clbit in clbits)
 def raw_clbit_index(clbit: qiskit.circuit.Clbit,
                     clbits: List[qiskit.circuit.Clbit]) -> int:
     """
@@ -202,8 +202,7 @@ def clbits(circuit: Circuit):
             *[x.metadata.get('clbits', []) for x in circuit.instructions])))
 
 
-@require('gate name must be valid',
-         lambda args: args.gate.name in valid_gatenames())
+@require(lambda gate: gate.name in valid_gatenames())
 def ir_instruction_from_native(
         gate: qiskit.circuit.Gate, qubits: List[qiskit.circuit.Qubit],
         clbits: List[qiskit.circuit.Clbit],
@@ -215,8 +214,9 @@ def ir_instruction_from_native(
         bit_bindings=[raw_qubit_index(qb, circuit_qubits) for qb in qubits],
         # this below must be a pvector to handle some hashing
         metadata={
-            'clbits': pvector([raw_clbit_index(cb, circuit_clbits) for cb in clbits])
-        } if len(clbits) > 0 else {})
+            'clbits':
+            pvector([raw_clbit_index(cb, circuit_clbits) for cb in clbits])
+        } if len(clbits) > 0 else {})  # type: ignore
 
 
 def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
@@ -252,7 +252,8 @@ def ir_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     _clbits = clbits(c)
     # this is slightly different because we only list classical bits used and assume
     # they start from 0 without checking for unused edge bits.
-    num_clbits = 0 if len(_clbits) == 0 else max(_clbits) + 1 #  - min(_clbits) + 1
+    num_clbits = 0 if len(
+        _clbits) == 0 else max(_clbits) + 1  #  - min(_clbits) + 1
     result = qiskit.QuantumCircuit(
         num_qubits) if num_clbits == 0 else qiskit.QuantumCircuit(
             num_qubits, num_clbits)

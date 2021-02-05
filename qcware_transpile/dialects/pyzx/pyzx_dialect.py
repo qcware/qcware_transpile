@@ -7,7 +7,7 @@ from pyrsistent.typing import PSet, PMap
 from typing import Tuple, Any, Set, Sequence, Generator, Dict
 from inspect import isclass, signature
 from functools import lru_cache
-from dpcontracts import require
+from icontract import require
 
 __dialect_name__ = "pyzx"
 
@@ -156,8 +156,7 @@ def native_instructions(
         yield g
 
 
-@require('gate name must be valid',
-         lambda args: args.g.__class__.__name__ in valid_gatenames())
+@require(lambda g: g.__class__.__name__ in valid_gatenames())
 def ir_instruction_from_native(g: pyzx.circuit.Gate) -> Instruction:
     return Instruction(
         gate_def=gatedef_from_gatething(g.__class__),

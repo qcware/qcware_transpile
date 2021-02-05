@@ -7,8 +7,7 @@ from qcware_transpile.dialects import (quasar as quasar_dialect, qiskit as
                                        qiskit_dialect)
 from qcware_transpile.circuits import Circuit
 from qcware_transpile import TranslationException
-from qcware_transpile.instructions import Instruction
-from dpcontracts import require, PreconditionError
+from icontract.errors import ViolationError
 import quasar
 from pyrsistent import pset
 import qiskit
@@ -92,5 +91,5 @@ def translate(c: quasar.Circuit) -> qiskit.QuantumCircuit:
         return thread_first(c, quasar_dialect.native_to_ir,
                             lambda x: simple_translate(translation_set(), x),
                             qiskit_dialect.ir_to_native)
-    except PreconditionError:
+    except ViolationError:
         raise TranslationException(audit(c))

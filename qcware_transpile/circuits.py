@@ -3,7 +3,7 @@ import itertools
 from typing import Set, Tuple, Sequence, Mapping, Any, Optional
 from pyrsistent import pvector, pmap, pset
 from pyrsistent.typing import PMap, PSet, PVector
-from dpcontracts import require  # type: ignore
+from icontract import require  # type: ignore
 from .helpers import reverse_map
 from .gates import Dialect
 from .instructions import (Instruction, instruction_bit_bindings_map,
@@ -21,7 +21,8 @@ class Circuit(object):
 
     @classmethod
     def from_tuples(cls, dialect: Dialect,
-                    instructions: Sequence[Tuple[str, Mapping, Sequence[int]]]):
+                    instructions: Sequence[Tuple[str, Mapping,
+                                                 Sequence[int]]]):
         """
         A simplified version of from_instructions, where instead of
         specifying the actual instruction objects, you specify
@@ -121,8 +122,7 @@ def circuit_is_valid_replacement(c: Circuit) -> bool:
     return all([instruction_is_valid_replacement(i) for i in c.instructions])
 
 
-@require("parameters in target must be fully bound",
-         lambda args: circuit_parameters_are_fully_bound(args.target))
+@require(lambda target: circuit_parameters_are_fully_bound(target))
 def circuit_pattern_matches_target(pattern: Circuit, target: Circuit) -> bool:
     return ((len(pattern.instructions) == len(target.instructions)) and all([
         instruction_pattern_matches_target(pattern.instructions[i],

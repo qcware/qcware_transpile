@@ -6,10 +6,8 @@ from qcware_transpile.matching import (TranslationRule, TranslationSet,
 from qcware_transpile.dialects import quasar as quasar_dialect, pyzx as pyzx_dialect
 import pyzx
 from qcware_transpile.circuits import Circuit
-from qcware_transpile.instructions import Instruction
 from qcware_transpile import TranslationException
 from pyrsistent import pset
-from dpcontracts import require, PreconditionError
 import quasar
 from typing import Dict
 from toolz.functoolz import thread_first

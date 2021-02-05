@@ -6,9 +6,8 @@ from qcware_transpile.dialects import quasar as quasar_dialect, pyzx as pyzx_dia
 import pyzx
 from qcware_transpile.circuits import Circuit
 from qcware_transpile import TranslationException
-from qcware_transpile.instructions import Instruction
 from pyrsistent import pset
-from dpcontracts import require, PreconditionError
+from icontract.errors import ViolationError
 import quasar
 from toolz.functoolz import thread_first
 from fractions import Fraction
@@ -115,5 +114,5 @@ def translate(c: quasar.Circuit) -> pyzx.Circuit:
         return thread_first(c, quasar_dialect.native_to_ir,
                             lambda x: simple_translate(translation_set(), x),
                             pyzx_dialect.ir_to_native)
-    except PreconditionError:
+    except ViolationError:
         raise TranslationException(audit(c))

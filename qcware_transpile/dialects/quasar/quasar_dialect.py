@@ -11,7 +11,7 @@ from qcware_transpile.circuits import Circuit
 from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
 from inspect import signature
-from dpcontracts import require  # type: ignore
+from icontract import require  # type: ignore
 import functools
 
 __dialect_name__ = "quasar"
@@ -80,8 +80,7 @@ def gatedef_from_gatefun(name: str, g: Callable) -> GateDef:
     return gatedef_from_gate(name, g())
 
 
-@require("thing must represent a gate",
-         lambda args: represents_gate(args.thing))
+@require(lambda thing: represents_gate(thing))
 def gatedef_from_gatething(name: str, thing: Any) -> GateDef:
     if isinstance(thing, Gate):
         return gatedef_from_gate(name, thing)
@@ -91,8 +90,7 @@ def gatedef_from_gatething(name: str, thing: Any) -> GateDef:
         assert False
 
 
-@require("thing must represent a gate",
-         lambda args: represents_gate(args.thing))
+@require(lambda thing: represents_gate(thing))
 def gate_name_property(thing: Any) -> str:
     """
     Return the .name property of a Gate (or Gate

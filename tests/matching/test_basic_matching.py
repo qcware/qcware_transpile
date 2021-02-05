@@ -2,22 +2,28 @@ from hypothesis import given, note, HealthCheck, settings, assume
 from hypothesis.strategies import (data, lists, integers, dictionaries, tuples,
                                    sampled_from)
 from qcware_transpile.gates import Dialect
-from qcware_transpile.circuits import (Circuit, circuit_bit_bindings,
-                                       circuit_bit_binding_signature,
-                                       circuit_pattern_matches_target,
-                                       circuit_bit_targets,
-                                       circuit_parameter_map,
-                                       circuit_conforms_to_dialect)
+from qcware_transpile.circuits import (
+    Circuit,
+    circuit_bit_bindings,
+    circuit_bit_binding_signature,
+    circuit_pattern_matches_target,
+    circuit_bit_targets,
+    circuit_parameter_map,
+)
 from qcware_transpile.instructions import (
     remapped_instruction, _is_valid_replacement_parameter_value)
 from qcware_transpile.helpers import exists_in
-from ..strategies import (dialect_and_circuit, parameter_names,
-                          replacement_parameter_values, dialects,
-                          translation_sets, translatable_circuits)
-from qcware_transpile.matching import simple_translate, trivial_rule
+from ..strategies import (
+    dialect_and_circuit,
+    parameter_names,
+    replacement_parameter_values,
+    dialects,
+    translation_sets,
+)
+from qcware_transpile.matching import trivial_rule
 from typing import Tuple
 import pytest
-import dpcontracts  # type: ignore
+import icontract
 import attr
 
 
@@ -98,7 +104,7 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
 
         # we should raise a precondition violation if the target isn't
         # fully bound
-        with pytest.raises(dpcontracts.PreconditionError):
+        with pytest.raises(icontract.errors.ViolationError):
             assert not circuit_pattern_matches_target(c, p)
 
     # switch a bit binding in the pattern and it shouldn't match

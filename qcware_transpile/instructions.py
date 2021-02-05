@@ -1,7 +1,7 @@
 import attr
 from typing import Mapping, Any, Set, Tuple
 from pyrsistent import pmap
-from pyrsistent.typing import PVector, PMap
+from pyrsistent.typing import PVector, PMap, PSet
 from .gates import GateDef, _qubit_ids
 from .helpers import map_seq_to_seq
 from inspect import signature
@@ -146,7 +146,7 @@ def instruction_pattern_matches_target(pattern: Instruction,
 
 
 def instruction_bit_bindings_map(
-        instruction: Instruction) -> PMap[int, Set[int]]:
+        instruction: Instruction) -> PMap[int, PSet[int]]:
     """
     Returns a "binding map" of bit ids to bit assignments;
     in other words, an instruction binding the gate CX with

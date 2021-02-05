@@ -2,7 +2,7 @@
 Some helper functions
 """
 from typing import Sequence, Mapping
-from dpcontracts import require  # type: ignore
+from icontract import require  # type: ignore
 from pyrsistent import pmap, pset
 from typing import TypeVar, Dict, Iterable, Callable
 from pyrsistent.typing import PMap, PSet
@@ -12,8 +12,7 @@ B = TypeVar('B')
 T = TypeVar('T')
 
 
-@require("Sequences must be the same length",
-         lambda args: len(args.s1) == len(args.s2))
+@require(lambda s1, s2: len(s1) == len(s2))
 def map_seq_to_seq(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, PSet[B]]:
     """
     Given two sequences of equal lengths, map each
@@ -39,10 +38,8 @@ def map_seq_to_seq(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, PSet[B]]:
     return pmap(result)
 
 
-@require("Sequences must be the same length",
-         lambda args: len(args.s1) == len(args.s2))
-@require("Mapping must be unique (no multiple values in domain)",
-         lambda args: len(set(args.s1)) == len(args.s1))
+@require(lambda s1, s2: len(s1) == len(s2))
+@require(lambda s1: len(set(s1)) == len(s1))
 def map_seq_to_seq_unique(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, B]:
     """
     Much like map_seq_to_seq, in this case provide a direct

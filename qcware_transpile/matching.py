@@ -1,12 +1,12 @@
 """
 Files for defining gates, gate definitions, and the like
 """
-from dpcontracts import require, ensure  # type: ignore
+from icontract import require, ensure  # type: ignore
 from qcware_transpile.exceptions import TranslationException
 import attr
 from pyrsistent.typing import PSet
 from pyrsistent import pset
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union, Iterable
 from qcware_transpile.helpers import map_seq_to_seq_unique
 from qcware_transpile.instructions import Instruction, remapped_instruction, audit_instruction_for_executable
 from qcware_transpile.gates import Dialect, GateDef
@@ -32,9 +32,11 @@ class TranslationRule(object):
         # replacement must address the same bits as pattern
         pattern_bits = circuit_bit_targets(self.pattern)
         replacement_bits = circuit_bit_targets(self.replacement)
-        if len(replacement_bits) > 0 and set(pattern_bits) != set(replacement_bits):
+        if len(replacement_bits) > 0 and set(pattern_bits) != set(
+                replacement_bits):
             raise ValueError(
-                f"pattern and replacement must target the same set of bits ({pattern_bits}!={replacement_bits})")
+                f"pattern and replacement must target the same set of bits ({pattern_bits}!={replacement_bits})"
+            )
         # replacement values must either be values or keys into pattern
         if not circuit_is_valid_replacement(self.replacement):
             raise ValueError(
@@ -54,13 +56,10 @@ class TranslationRule(object):
         return "\n->\n".join([str(self.pattern), str(self.replacement)])
 
 
-@require("Gates must have the same number of qubits",
-         lambda args: len(args.a.qubit_ids) == len(args.b.qubit_ids))
-@require("Only one parameter is allowed for trivial bindings",
-         lambda args: len(args.a.parameter_names) == len(
-             args.b.parameter_names) and len(args.a.parameter_names) <= 1)
-@require("Argument gatedefs must belong to referenced dialects",
-         lambda args: args.a in args.dialect_a.gate_defs and args.b in args.
+@require(lambda a, b: len(a.qubit_ids) == len(b.qubit_ids))
+@require(lambda a, b: len(a.parameter_names) == len(b.parameter_names) and len(
+    a.parameter_names) <= 1)
+@require(lambda dialect_a, a, dialect_b, b: a in dialect_a.gate_defs and b in
          dialect_b.gate_defs)
 def trivial_rule(dialect_a: Dialect,
                  a: GateDef,
@@ -104,23 +103,25 @@ def trivial_rule(dialect_a: Dialect,
                                               [target_instruction]))
 
 
-def trivial_rules(dialect_a: Dialect, dialect_b: Dialect,
-                  name_tuples: Tuple[str, str]) -> PSet[TranslationRule]:
+def trivial_rules(
+    dialect_a: Dialect, dialect_b: Dialect,
+    name_tuples: Iterable[Union[Tuple[str, str], Tuple[str, str, Callable]]]
+) -> PSet[TranslationRule]:
     """
     Create a set of trivial rules without any parameter translation
     by pairs of gate names
     """
     return pset({
         trivial_rule(dialect_a, dialect_a.gate_named(t[0]), dialect_b,
-                     dialect_b.gate_named(t[1]), None if len(t) == 2 else t[2])
+                     dialect_b.gate_named(t[1]),
+                     None if len(t) == 2 else t[2])  # type: ignore
         for t in name_tuples
     })
 
 
-@require("translation pattern must match circuit", lambda args:
-         circuit_pattern_matches_target(args.translation.pattern, args.target))
-@require("target circuit must be executable",
-         lambda args: circuit_is_valid_executable(args.target))
+@require(lambda translation, target: circuit_pattern_matches_target(
+    translation.pattern, target))
+@require(lambda target: circuit_is_valid_executable(target))
 def translation_replace_circuit(translation: TranslationRule,
                                 target: Circuit) -> Circuit:
     pattern_bits = list(circuit_bit_targets(translation.pattern))
@@ -187,11 +188,8 @@ def untranslatable_instructions(c: Circuit,
     return pset({x for x in subcircuits if len(matching_rules(ts, x)) == 0})
 
 
-@require("Circuit must belong to the translation set 'from' dialect",
-         lambda args: args.target.dialect_name == args.ts.from_dialect.name)
-@require(
-    "Circuit must be fully translatable by a single rule in the translation set",
-    lambda args: len(matching_rules(args.ts, args.target)) > 0)
+@require(lambda ts, target: target.dialect_name == ts.from_dialect.name)
+@require(lambda ts, target: len(matching_rules(ts, target)) > 0)
 def translationset_replace_circuit(ts: TranslationSet,
                                    target: Circuit) -> Circuit:
     """
@@ -211,14 +209,9 @@ def translationset_replace_circuit(ts: TranslationSet,
     return result
 
 
-@require("Circuit must belong to the translation set 'from' dialect",
-         lambda args: circuit_conforms_to_dialect(args.c, args.ts.from_dialect)
-         )
-@require("Circuit must be simply translatable by the translation set",
-         lambda args: circuit_is_simply_translatable_by(args.c, args.ts))
-@ensure("Result must belong to the translation set 'to' dialect",
-        lambda args, result: circuit_conforms_to_dialect(
-            result, args.ts.to_dialect))
+@require(lambda ts, c: circuit_conforms_to_dialect(c, ts.from_dialect))
+@require(lambda ts, c: circuit_is_simply_translatable_by(c, ts))
+@ensure(lambda result, ts: circuit_conforms_to_dialect(result, ts.to_dialect))
 def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
     """
     Given a simple translation set ts, breaks c into subcircuits
