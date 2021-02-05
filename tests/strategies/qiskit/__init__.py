@@ -1,9 +1,8 @@
 import math
 from hypothesis.strategies import (lists, integers, composite, sampled_from,
-                                   floats, tuples)
+                                   floats)
 import qiskit  # type: ignore
 from qcware_transpile.dialects.qiskit.qiskit_dialect import (dialect,
-                                                             gate_names,
                                                              name_to_class)
 
 
