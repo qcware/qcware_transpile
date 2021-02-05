@@ -119,5 +119,5 @@ def translate(c: qiskit.QuantumCircuit,
         return thread_first(c2, qiskit_dialect.native_to_ir,
                             lambda x: simple_translate(translation_set(), x),
                             quasar_dialect.ir_to_native)
-    except PreconditionError:
+    except ViolationError:
         raise TranslationException(audit(c2))

@@ -109,5 +109,5 @@ def translate(c: pyzx.Circuit) -> quasar.Circuit:
         return thread_first(c, pyzx_dialect.native_to_ir,
                             lambda x: simple_translate(translation_set(), x),
                             quasar_dialect.ir_to_native)
-    except PreconditionError:
+    except ViolationError:
         raise TranslationException(audit(c))
