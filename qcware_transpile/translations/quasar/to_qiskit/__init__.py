@@ -69,7 +69,8 @@ def audit(c: quasar.Circuit):
     if len(untranslatable) > 0:
         result['untranslatable_instructions'] = untranslatable
     if not quasar.Circuit.test_equivalence(c, c.center()):
-        result['circuit_not_centered'] = True
+        # type notation below since TypedDict was fresh in 3.8
+        result['circuit_not_centered'] = True  # type: ignore
     return result
 
 

@@ -227,7 +227,8 @@ def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
         for instruction in translationset_replace_circuit(ts, sub).instructions
     ]
     return Circuit.from_instructions(dialect_name=ts.to_dialect.name,
-                                     instructions=new_instructions)
+                                instructions=new_instructions,
+                                qubits = c.qubits) # type: ignore
 
 
 def translated_gates(tset: TranslationSet) -> PSet[GateDef]:

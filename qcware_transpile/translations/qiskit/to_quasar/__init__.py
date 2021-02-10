@@ -59,22 +59,22 @@ def audit(c: qiskit.QuantumCircuit):
     qdc = qiskit_dialect.native_to_ir(c)
     untranslatable = untranslatable_instructions(qdc, translation_set())
 
-    circuit_qubits = sorted(list(qdc.qubits))
-    used_qubits = sorted(
-        list(set().union(*[set(i.bit_bindings) for i in qdc.instructions])))
+    # circuit_qubits = sorted(list(qdc.qubits))
+    # used_qubits = sorted(
+    #     list(set().union(*[set(i.bit_bindings) for i in qdc.instructions])))
 
     result = {}
 
-    if len(used_qubits) == 0:
-        result["no_used_qubits"] = True
-    else:
-        unused_edge_qubits = {
-            x
-            for x in circuit_qubits
-            if (x < used_qubits[0]) or (x > used_qubits[-1])
-        }
-        if len(unused_edge_qubits) > 0:
-            result['unused_edge_qubits'] = unused_edge_qubits
+    # if len(used_qubits) == 0:
+    #     result["no_used_qubits"] = True
+    # else:
+    #     unused_edge_qubits = {
+    #         x
+    #         for x in circuit_qubits
+    #         if (x < used_qubits[0]) or (x > used_qubits[-1])
+    #     }
+    #     if len(unused_edge_qubits) > 0:
+    #         result['unused_edge_qubits'] = unused_edge_qubits
 
     if len(untranslatable) > 0:
         result['untranslatable_instructions'] = untranslatable
@@ -118,6 +118,6 @@ def translate(c: qiskit.QuantumCircuit,
     try:
         return thread_first(c2, qiskit_dialect.native_to_ir,
                             lambda x: simple_translate(translation_set(), x),
-                            quasar_dialect.ir_to_native)
+                            lambda x: quasar_dialect.ir_to_native(x, fill_unused_edge_qubits=True))
     except ViolationError:
         raise TranslationException(audit(c2))

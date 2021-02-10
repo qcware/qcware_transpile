@@ -1,5 +1,6 @@
 from qcware_transpile.matching import (TranslationRule, TranslationSet,
                                        trivial_rule, trivial_rules,
+                                       untranslatable_instructions,
                                        untranslated_gates, simple_translate,
                                        circuit_is_simply_translatable_by)
 from qcware_transpile.dialects import quasar as quasar_dialect, pyzx as pyzx_dialect
@@ -91,7 +92,7 @@ def audit(c: quasar.Circuit) -> Dict:
     if len(untranslatable) > 0:
         result['untranslatable_instructions'] = untranslatable
     if not quasar.Circuit.test_equivalence(c, c.center()):
-        result['circuit_not_centered'] = True
+        result['circuit_not_centered'] = True # type: ignore
     return result
 
 
