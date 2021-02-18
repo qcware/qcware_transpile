@@ -37,9 +37,9 @@ def translation_set():
     # to allow qiskit circuits with edge bits that are measured.
     rules = pset().union(trivial_rules(
         qiskit_d, quasar_d, trivial_gates))
-    return TranslationSet(from_dialect=qiskit_d,
-                          to_dialect=quasar_d,
-                          rules=rules)
+    return TranslationSet.from_trivial_rules(from_dialect=qiskit_d,
+                                        to_dialect=quasar_d,
+                                        rules=rules)
 
 
 target_gatenames = sorted(

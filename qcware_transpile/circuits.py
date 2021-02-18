@@ -18,6 +18,12 @@ class Circuit(object):
     dialect_name = attr.ib(type=str)
     instructions = attr.ib(type=PVector[Instruction], converter=pvector)
     qubits = attr.ib(type=PSet[Any], converter=pset)
+    # 'metadata' contains extra information not necessarily
+    # understood by translations, such as "classical bit" arguments,
+    # etc. which are not normally "part" of a quantum circuit.
+    metadata = attr.ib(type=PMap[str, Any],
+                       default=pmap(),
+                       converter=pmap)
 
     @classmethod
     def from_tuples(cls, dialect: Dialect,
