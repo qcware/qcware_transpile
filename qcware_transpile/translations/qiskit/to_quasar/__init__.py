@@ -113,8 +113,8 @@ def translate(c: qiskit.QuantumCircuit,
         c2 = qiskit.compiler.transpile(c, basis_gates=basis_gates)
     else:
         c2 = c.copy()
-    if not native_is_translatable(c2):
-        raise TranslationException(audit(c2))
+    # if not native_is_translatable(c2):
+    #     raise TranslationException(audit(c2))
     try:
         return thread_first(c2, qiskit_dialect.native_to_ir,
                             lambda x: simple_translate(translation_set(), x),

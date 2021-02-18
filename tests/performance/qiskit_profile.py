@@ -1,4 +1,5 @@
 import numpy as np
+import qiskit
 from qiskit.optimization.applications.ising.common import random_graph
 from qiskit.optimization.applications.ising import vertex_cover
 from qiskit.aqua.algorithms import QAOA
