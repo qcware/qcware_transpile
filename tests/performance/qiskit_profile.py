@@ -28,10 +28,10 @@ def create_qiskit_circuit(num_nodes: int,
     qaoa = QAOA(qubit_op, p=int(len(params) / 2))
     return qaoa.var_form.construct_circuit(params)
 
-
 circuit_width = 7
 qiskit_circuit = create_qiskit_circuit(Circuit_widths[circuit_width],
                                        Parameters[circuit_width])
+print(f"{qiskit_circuit.num_qubits} qubits")
 # translate once to load any missing imports
 quasar_circuit = translate(qiskit_circuit)
 cProfile.run('quasar_circuit = translate(qiskit_circuit)', 'test.prof')
