@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qcware_transpile"
-version = "0.1.1-alpha.3"
+version = "0.1.1-alpha.6"
 description = "A quantum circuit transpilation framework"
 authors = ["Vic Putz <vic.putz@qcware.com>"]
 include = ["qcware_transpile/py.typed"]
@@ -26,6 +26,8 @@ pyls-mypy = "^0.1.8"
 pytest-parallel = "^0.1.0"
 sphinx = "^3.4.3"
 sphinx-rtd-theme = "^0.5.1"
+qiskit = "^0.23.5"
+snakeviz = "^2.1.0"
 
 [tool.poetry.extras]
 qcware-quasar = ["qcware-quasar"]

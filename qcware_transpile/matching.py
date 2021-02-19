@@ -4,8 +4,8 @@ Files for defining gates, gate definitions, and the like
 from icontract import require, ensure  # type: ignore
 from qcware_transpile.exceptions import TranslationException
 import attr
-from pyrsistent.typing import PSet
-from pyrsistent import pset
+from pyrsistent.typing import PSet, PMap
+from pyrsistent import pset, pmap, PMap as PMap_class
 from typing import Callable, Optional, Tuple, Union, Iterable
 from qcware_transpile.helpers import map_seq_to_seq_unique
 from qcware_transpile.instructions import Instruction, remapped_instruction, audit_instruction_for_executable
@@ -154,6 +154,41 @@ class TranslationSet(object):
     from_dialect = attr.ib(type=Dialect)
     to_dialect = attr.ib(type=Dialect)
     rules = attr.ib(type=PSet[TranslationRule], converter=pset)
+    trivial_dispatch = attr.ib(type=PMap[str, TranslationRule],
+                               validator=attr.validators.optional(
+                                   attr.validators.instance_of(PMap_class)),
+                               default=None)
+
+    def is_trivial(self) -> bool:
+        """Is this a trivial translation set (single-instruction patterns)?
+        """
+        return self.trivial_dispatch is not None
+
+    @classmethod
+    @require(lambda from_dialect, rules: all(
+        (rule.pattern.dialect_name == from_dialect.name for rule in rules)))
+    @require(lambda to_dialect, rules: all(
+        (rule.replacement.dialect_name == to_dialect.name for rule in rules)))
+    @require(lambda rules: all(
+        (len(rule.pattern.instructions) == 1 for rule in rules)))
+    def from_trivial_rules(cls, from_dialect: Dialect, to_dialect: Dialect,
+                           rules: PSet[TranslationRule]):
+        """
+        Honestly, most rules will be simple (one gate to a set of gates).  If
+        this is the case, we can take a serious optimization and assume that
+        each gate name maps to exactly one translation rule and
+        that the bit signatures are the same because the gate can only
+        be applied one way.  This could perhaps lead to subtle bugs
+        (for example, CX(0,0) shouldn't probably work) but for now we are
+        ignoring those edge cases.
+        """
+        return cls(from_dialect=from_dialect,
+                   to_dialect=to_dialect,
+                   rules=rules,
+                   trivial_dispatch=pmap({
+                       rule.pattern.instructions[0].gate_def.name: rule
+                       for rule in rules
+                   }))
 
     def __str__(self):
         return "\n  ".join(
@@ -167,9 +202,18 @@ def matching_rules(ts: TranslationSet, c: Circuit) -> PSet[TranslationRule]:
     Right now this is not efficient; it could be assisted by maps based on
     first gate name in the rule, etc.
     """
-    return pset(
-        {r
-         for r in ts.rules if circuit_pattern_matches_target(r.pattern, c)})
+    if ts.is_trivial():
+        if len(c.instructions) == 0:
+            return set()
+        else:
+            gate_name = c.instructions[0].gate_def.name
+            rule = ts.trivial_dispatch.get(gate_name, None)
+            return {rule} if rule is not None else set()
+    else:
+        return pset({
+            r
+            for r in ts.rules if circuit_pattern_matches_target(r.pattern, c)
+        })
 
 
 def circuit_is_simply_translatable_by(c: Circuit, ts: TranslationSet) -> bool:
@@ -227,7 +271,8 @@ def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
         for instruction in translationset_replace_circuit(ts, sub).instructions
     ]
     return Circuit.from_instructions(dialect_name=ts.to_dialect.name,
-                                     instructions=new_instructions)
+                                     instructions=new_instructions,
+                                     qubits=c.qubits)  # type: ignore
 
 
 def translated_gates(tset: TranslationSet) -> PSet[GateDef]:

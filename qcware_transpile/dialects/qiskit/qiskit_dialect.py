@@ -5,11 +5,9 @@ from qcware_transpile.instructions import Instruction
 from qcware_transpile.helpers import map_seq_to_seq_unique
 from pyrsistent import pset, pmap, pvector
 from pyrsistent.typing import PSet, PMap
-from typing import Tuple, Any, Set, Generator, List, Dict
+from typing import Tuple, Any, Set, Generator, List, Dict, Callable
 from inspect import isclass, signature
-import numpy as np  # type: ignore
 from functools import lru_cache
-from itertools import accumulate
 from icontract import require
 
 __dialect_name__ = "qiskit"
@@ -83,6 +81,7 @@ def gatething_name(thing: type) -> str:
     return gate.name
 
 
+@lru_cache(128)
 def gatedef_from_gatething(thing) -> GateDef:
     return GateDef(
         name=gatething_name(thing),
@@ -94,8 +93,8 @@ def gatedef_from_gatething(thing) -> GateDef:
 # really just generate other gates, for example those which take a
 # number of bits as an argument.  for now we are disabling those.
 # we also disable some gates which resolve to identical "names"
-# such as C3XGate and C4XGate
-Problematic_gatenames = pset({"ms", "mcx", "barrier"})
+# such as C3XGate and C4XGate, or C3SXGate and C3XGate
+Problematic_gatenames = pset({"ms", "mcx", "barrier", "c3sx"})
 
 
 @lru_cache(1)
@@ -143,6 +142,11 @@ def valid_gatenames() -> Set[str]:
     return {g.name for g in dialect().gate_defs}
 
 
+@lru_cache(128)
+def gate_init_parameter_names(initfunc: Callable) -> List[str]:
+    return [k for k, v in signature(initfunc).parameters.items()]
+
+
 def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:
     # sometimes transpile makes ParameterExpressions and here we try to
     # coerce those into floats... which may not always be the right idea
@@ -151,9 +155,8 @@ def parameter_bindings_from_gate(gate: qiskit.circuit.Gate) -> PMap[str, Any]:
         if not isinstance(x, qiskit.circuit.ParameterExpression) else float(x)
         for x in gate.params
     ]
-    names = [k for k, v in signature(gate.__init__).parameters.items()
-             ][0:len(values)]
-    return map_seq_to_seq_unique(names, values)
+    names = gate_init_parameter_names(gate.__init__)
+    return map_seq_to_seq_unique(names[0:len(values)], values)
 
 
 def native_instructions(
@@ -192,30 +195,28 @@ def raw_clbit_index(clbit: qiskit.circuit.Clbit,
     return clbits.index(clbit)
 
 
-def clbits(circuit: Circuit):
+def normalized_instructions(c: qiskit.QuantumCircuit):
+    """Custom generator that loops through a circuit giving the instruction
+    and "normalized" qubits and clbits (ie from 0->max rather than by register)
     """
-    A sorted list of the classical bit ids in the IR representation; used
-    for reconstruction of a qiskit circuit to/from IR, with difficulties
-    """
-    return list(
-        sorted(set().union(
-            *[x.metadata.get('clbits', []) for x in circuit.instructions])))
+    gates_to_skip = {'barrier'}
+    for instruction, qubits, clbits in c.data:
+        if instruction.name not in gates_to_skip:
+            yield instruction, [c.qubits.index(x) for x in qubits
+                                ], [c.clbits.index(x) for x in clbits]
 
 
 @require(lambda gate: gate.name in valid_gatenames())
 def ir_instruction_from_native(
-        gate: qiskit.circuit.Gate, qubits: List[qiskit.circuit.Qubit],
-        clbits: List[qiskit.circuit.Clbit],
-        circuit_qubits: List[qiskit.circuit.Qubit],
-        circuit_clbits: List[qiskit.circuit.Clbit]) -> Instruction:
+        gate: qiskit.circuit.Gate, qubits: List[int], clbits: List[int]) -> Instruction:
     return Instruction(
         gate_def=gatedef_from_gatething(gate.__class__),
         parameter_bindings=parameter_bindings_from_gate(gate),  # type: ignore
-        bit_bindings=[raw_qubit_index(qb, circuit_qubits) for qb in qubits],
+        bit_bindings=qubits,
         # this below must be a pvector to handle some hashing
         metadata={
             'clbits':
-            pvector([raw_clbit_index(cb, circuit_clbits) for cb in clbits])
+            pvector(clbits)
         } if len(clbits) > 0 else {})  # type: ignore
 
 
@@ -225,13 +226,15 @@ def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
     """
     rqc = qc.reverse_bits()
     instructions = list(
-        ir_instruction_from_native(x[0], x[1], x[2], rqc.qubits, rqc.clbits)
-        for x in native_instructions(rqc))
+        ir_instruction_from_native(x[0], x[1], x[2])
+        for x in normalized_instructions(rqc))
     qubits = list(range(qc.num_qubits))
+    clbits = list(range(qc.num_clbits))
     return Circuit(
         dialect_name=__dialect_name__,
         instructions=instructions,  # type: ignore
-        qubits=qubits)  # type: ignore
+        qubits=qubits,
+        metadata={'clbits': pvector(clbits)})  # type: ignore
 
 
 def qiskit_gate_from_instruction(i: Instruction):
@@ -249,11 +252,10 @@ def ir_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     """
     # qiskit wants the number of qubits first.
     num_qubits = max(c.qubits) - min(c.qubits) + 1
-    _clbits = clbits(c)
+    _clbits = c.metadata.get('clbits',[]) if c.metadata is not None else {}
     # this is slightly different because we only list classical bits used and assume
     # they start from 0 without checking for unused edge bits.
-    num_clbits = 0 if len(
-        _clbits) == 0 else max(_clbits) + 1  #  - min(_clbits) + 1
+    num_clbits = len(_clbits)
     result = qiskit.QuantumCircuit(
         num_qubits) if num_clbits == 0 else qiskit.QuantumCircuit(
             num_qubits, num_clbits)
@@ -272,12 +274,12 @@ def native_circuits_are_equivalent(c1: qiskit.QuantumCircuit,
                                    c2: qiskit.QuantumCircuit) -> bool:
     """
     Whether or not two circuits are equivalent.  Not having a test_equivalence
-    method here, we brute-force it by evaluating statevectors
+    method here, we brute-force it by evaluating statevectors, but this does not
+    function correctly with measurement gates.
     """
-    backend = qiskit.Aer.get_backend('statevector_simulator')
-    sv1 = qiskit.execute(c1, backend).result().data()['statevector']
-    sv2 = qiskit.execute(c2, backend).result().data()['statevector']
-    return np.isclose(sv1, sv2).all()
+    instruction_pairs = zip(normalized_instructions(c1),
+                            normalized_instructions(c2))
+    return all((x[0] == x[1] for x in instruction_pairs))
 
 
 def audit(c: qiskit.QuantumCircuit) -> Dict:
@@ -295,7 +297,7 @@ def audit(c: qiskit.QuantumCircuit) -> Dict:
     #             instruction.__class__.__name__)
 
     invalid_gate_names = set()
-    for g, qubits, clbits in native_instructions(c):
+    for g, qubits, clbits in normalized_instructions(c):
         if g.name not in valid_gatenames():
             invalid_gate_names.add(gatething_name(g))
     result = {}
