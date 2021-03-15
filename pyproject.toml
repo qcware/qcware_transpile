@@ -14,6 +14,7 @@ qiskit-aer = { version = "^0.7.2", optional=true }
 pyzx = {version = "^0.6.3", optional = true}
 toolz = "^0.11.1"
 icontract = "^2.4.1"
+amazon-braket-sdk = {version = "^1.5.10", optional = true}
 
 [tool.poetry.dev-dependencies]
 hypothesis = "^6.1.1"
@@ -33,6 +34,7 @@ snakeviz = "^2.1.0"
 qcware-quasar = ["qcware-quasar"]
 qiskit = ["qiskit-aer"]
 pyzx = ["pyzx"]
+braket = ["amazon-braket-sdk"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
