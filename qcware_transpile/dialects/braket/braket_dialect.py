@@ -38,7 +38,7 @@ def number_of_qubits_from_gatething(thing: Gate) -> int:
     g = thing(**params)
     return g.qubit_count
 
-def gatedef_from_gatething(thing) -> GateDef:
+def gatedef_from_gatething(thing: Gate) -> GateDef:
     return GateDef(
         name=thing.__name__,
         parameter_names = parameter_names_from_gatething(thing),
@@ -79,5 +79,3 @@ def dialect() -> Dialect:
     """
     return Dialect(name=__dialect_name__,
                    gate_defs=gate_defs())
-
-print(dialect())
