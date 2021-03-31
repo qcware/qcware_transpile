@@ -15,6 +15,7 @@ pyzx = {version = "^0.6.3", optional = true}
 toolz = "^0.11.1"
 icontract = "^2.4.1"
 amazon-braket-sdk = {version = "^1.5.10", optional = true}
+qsharp = {version = "^0.15.2102", optional = true}
 
 [tool.poetry.dev-dependencies]
 hypothesis = "^6.1.1"
@@ -35,6 +36,7 @@ qcware-quasar = ["qcware-quasar"]
 qiskit = ["qiskit-aer"]
 pyzx = ["pyzx"]
 braket = ["amazon-braket-sdk"]
+qsharp = ["qsharp"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -7,6 +7,6 @@ workflows:
   main:
     jobs:
       - python/test:
-          args: '-E qcware-quasar -E qiskit -E pyzx'
+          args: '-E qcware-quasar -E qiskit -E pyzx -E braket'
           pkg-manager: poetry
           test-tool: pytest
