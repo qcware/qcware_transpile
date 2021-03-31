@@ -1,8 +1,10 @@
-from braket.circuits import gates, Gate
+import braket.circuits
 from qcware_transpile.gates import GateDef, Dialect
-from pyrsistent import pset
-from pyrsistent.typing import PSet
-from typing import Tuple, Any
+from qcware_transpile.circuits import Circuit
+from qcware_transpile.instructions import Instruction
+from pyrsistent import pmap, pset
+from pyrsistent.typing import PMap, PSet
+from typing import Tuple, Any, Generator, List
 from inspect import isclass, signature
 
 __dialect_name__ = "braket"
@@ -15,19 +17,19 @@ def braket_gatethings() -> PSet[Any]:
     """
     The set of all things in braket which represent a gate.
     """
-    possible_things = dir(gates)
+    possible_things = dir(braket.circuits.gates)
     return pset([
-        getattr(gates, x) 
+        getattr(braket.circuits.gates, x) 
         for x in possible_things 
-        if isclass(getattr(gates, x)) and issubclass(getattr(gates, x), Gate) and x not in _do_not_include_instructions
+        if isclass(getattr(braket.circuits.gates, x)) and issubclass(getattr(braket.circuits.gates, x), braket.circuits.Gate) and x not in _do_not_include_instructions
     ])
 
-def parameter_names_from_gatething(thing: Gate) -> PSet[str]:
+def parameter_names_from_gatething(thing: braket.circuits.Gate) -> PSet[str]:
     sig = signature(thing.__init__)
     result = set(sig.parameters.keys()).difference({'self', 'display_name'})
     return pset(result)
 
-def number_of_qubits_from_gatething(thing: Gate) -> int:
+def number_of_qubits_from_gatething(thing: braket.circuits.Gate) -> int:
     # unfortunately it's not obvious from just the class how many qubits
     # the gate can operate on, and pretty much the only path forward
     # seems to be to instantiate the gate and see.  That means coming
@@ -38,7 +40,7 @@ def number_of_qubits_from_gatething(thing: Gate) -> int:
     g = thing(**params)
     return g.qubit_count
 
-def gatedef_from_gatething(thing: Gate) -> GateDef:
+def gatedef_from_gatething(thing: braket.circuits.Gate) -> GateDef:
     return GateDef(
         name=thing.__name__,
         parameter_names = parameter_names_from_gatething(thing),
@@ -79,3 +81,48 @@ def dialect() -> Dialect:
     """
     return Dialect(name=__dialect_name__,
                    gate_defs=gate_defs())
+
+def parameter_bindings_from_gate(gate: braket.circuits.Gate) -> PMap[str, Any]:
+    param_names = parameter_names_from_gatething(gate)
+    result = {}
+    for param_name in param_names:
+        result[param_name] = getattr(gate, param_name)
+    return pmap(result)
+
+def native_instructions(
+    qc: braket.circuits.Circuit
+    ) -> Generator[Tuple[braket.circuits.instruction.InstructionOperator, List[int]], None, None]:
+    for instruction in qc.instructions:
+        if isinstance(instruction.operator, braket.circuits.Gate):
+            qubits = [int(qubit) for qubit in instruction.target]
+            yield instruction.operator, qubits
+
+def ir_instruction_from_native(gate: braket.circuits.Gate, qubits: List[int]) -> Instruction:
+    return Instruction(
+        gate_def=gatedef_from_gatething(gate.__class__),
+        parameter_bindings=parameter_bindings_from_gate(gate),
+        bit_bindings=qubits)
+
+def native_to_ir(qc: braket.circuits.Circuit) -> Circuit:
+    instructions = list(ir_instruction_from_native(x[0], x[1]) for x in native_instructions(qc))
+    qubits = list(range(qc.qubit_count))
+    return Circuit(
+        dialect_name = __dialect_name__, 
+        instructions = instructions, 
+        qubits=qubits)
+
+def braket_gate_from_instruction(i: Instruction):
+    gclass = getattr(braket.circuits.Gate, i.gate_def.name)
+    gate = gclass(**i.parameter_bindings)
+    return gate
+
+def ir_to_native(c: Circuit) -> braket.circuits.Circuit:
+    result = braket.circuits.Circuit()
+    for instruction in c.instructions:
+        g = braket_gate_from_instruction(instruction)
+        i = braket.circuits.Instruction(g, instruction.bit_bindings)
+        result.add_instruction(i)
+    return result
+
+def native_circuits_are_equivalent(c1: braket.circuits.Circuit, c2: braket.circuits.Circuit) -> bool:
+    return c1.__eq__(c2)
