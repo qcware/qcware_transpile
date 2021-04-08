@@ -18,7 +18,7 @@ amazon-braket-sdk = {version = "^1.5.10", optional = true}
 qsharp = {version = "^0.15.2102", optional = true}
 
 [tool.poetry.dev-dependencies]
-hypothesis = "^6.1.1"
+hypothesis = "^6.8.1"
 pytest = "^6.1.2"
 python-language-server = {extras = ["all"], version = "^0.36.1"}
 mypy = "^0.790"
