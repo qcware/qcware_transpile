@@ -39,4 +39,4 @@ def test_translate_qiskit_to_quasar(qiskit_circuit):
     pv_quasar = quasar_probability_vector(quasar_native_circuit)
     pv_qiskit = qiskit_probability_vector(qiskit_circuit)
     # this can fail with the default atol
-    assert (numpy.allclose(pv_qiskit, pv_quasar, atol=0.0000001))
+    assert (numpy.allclose(pv_qiskit, pv_quasar, atol=0.000001))
