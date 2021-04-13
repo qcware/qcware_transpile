@@ -1,10 +1,10 @@
+import braket.devices
 from hypothesis import given, note, assume, settings
 from qcware_transpile.translations.quasar.to_braket import translation_set, native_is_translatable 
 from qcware_transpile.matching import translated_gates, simple_translate
 from qcware_transpile.dialects import braket as braket_dialect, quasar as quasar_dialect
 from ...strategies.quasar import gates, circuits
 import braket.circuits
-import braket.devices
 import quasar
 import numpy
 
@@ -20,7 +20,7 @@ def quasar_statevector(circuit: quasar.Circuit):
     return sv
 
 
-def braket_statevector(circuit: braket.circuits.Circuit):
+def braket_statevector(circuit):
     b = braket.devices.LocalSimulator()
     sv = b.run(circuit.state_vector(), shots=0).result().values[0]
     return sv
