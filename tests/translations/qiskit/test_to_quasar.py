@@ -6,6 +6,7 @@ from ...strategies.qiskit import gates, circuits
 import qiskit  # type: ignore
 import quasar  # type: ignore
 import numpy  # type: ignore
+import pytest
 
 ts = translation_set()
 #translatable_gatedefs = [x for x in translated_gates(translation_set())]
@@ -32,6 +33,7 @@ def qiskit_probability_vector(circuit: qiskit.QuantumCircuit):
 
 @given(translatable_circuits)
 @settings(deadline=None)
+@pytest.mark.skip
 def test_translate_qiskit_to_quasar(qiskit_circuit):
     note(qiskit_circuit.draw())
     assume(native_is_translatable(qiskit_circuit))
