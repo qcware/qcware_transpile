@@ -13,43 +13,49 @@ __dialect_name__ = "braket"
 # the set of all things in braket which represent a gate.
 _do_not_include_instructions = pset({'AngledGate', 'Gate'})
 
+
 def braket_gatethings() -> PSet[Any]:
     """
     The set of all things in braket which represent a gate.
     """
     possible_things = dir(braket.circuits.gates)
     return pset([
-        getattr(braket.circuits.gates, x) 
-        for x in possible_things 
-        if isclass(getattr(braket.circuits.gates, x)) and issubclass(getattr(braket.circuits.gates, x), braket.circuits.Gate) and x not in _do_not_include_instructions
+        getattr(braket.circuits.gates, x) for x in possible_things
+        if isclass(getattr(braket.circuits.gates, x))
+        and issubclass(getattr(braket.circuits.gates, x), braket.circuits.Gate)
+        and x not in _do_not_include_instructions
     ])
+
 
 def parameter_names_from_gatething(thing: braket.circuits.Gate) -> PSet[str]:
     sig = signature(thing.__init__)
     result = set(sig.parameters.keys()).difference({'self', 'display_name'})
     return pset(result)
 
+
 def number_of_qubits_from_gatething(thing: braket.circuits.Gate) -> int:
     # unfortunately it's not obvious from just the class how many qubits
     # the gate can operate on, and pretty much the only path forward
     # seems to be to instantiate the gate and see.  That means coming
     # up with fake parameter arguments. Some gate initialization methods
-    # accept an angle parameter, which we set to zero. 
+    # accept an angle parameter, which we set to zero.
     param_names = parameter_names_from_gatething(thing)
     params = {k: 0 for k in param_names}
     g = thing(**params)
     return g.qubit_count
 
+
 def gatedef_from_gatething(thing: braket.circuits.Gate) -> GateDef:
-    return GateDef(
-        name=thing.__name__,
-        parameter_names = parameter_names_from_gatething(thing),
-        qubit_ids = number_of_qubits_from_gatething(thing))
+    return GateDef(name=thing.__name__,
+                   parameter_names=parameter_names_from_gatething(thing),
+                   qubit_ids=number_of_qubits_from_gatething(thing))
+
 
 # the Unitary gate is problematic since it allows for
 # the construction of a gate with an arbitrary matrix.
 # for now we will disable the Unitary gate.
 Problematic_gatenames = pset({'Unitary'})
+
 
 def attempt_gatedefs() -> Tuple[PSet[GateDef], PSet[str], PSet[type]]:
     """
@@ -72,15 +78,17 @@ def attempt_gatedefs() -> Tuple[PSet[GateDef], PSet[str], PSet[type]]:
             failure.add(thing.__name__)
     return (pset(success), pset(failure), pset(successful_things))
 
+
 def gate_defs() -> PSet[GateDef]:
     return attempt_gatedefs()[0]
+
 
 def dialect() -> Dialect:
     """
     The braket dialect
     """
-    return Dialect(name=__dialect_name__,
-                   gate_defs=gate_defs())
+    return Dialect(name=__dialect_name__, gate_defs=gate_defs())
+
 
 def parameter_bindings_from_gate(gate: braket.circuits.Gate) -> PMap[str, Any]:
     param_names = parameter_names_from_gatething(gate)
@@ -89,32 +97,39 @@ def parameter_bindings_from_gate(gate: braket.circuits.Gate) -> PMap[str, Any]:
         result[param_name] = getattr(gate, param_name)
     return pmap(result)
 
+
 def native_instructions(
     qc: braket.circuits.Circuit
-    ) -> Generator[Tuple[braket.circuits.instruction.InstructionOperator, List[int]], None, None]:
+) -> Generator[Tuple[braket.circuits.instruction.InstructionOperator,
+                     List[int]], None, None]:
     for instruction in qc.instructions:
         if isinstance(instruction.operator, braket.circuits.Gate):
             qubits = [int(qubit) for qubit in instruction.target]
             yield instruction.operator, qubits
 
-def ir_instruction_from_native(gate: braket.circuits.Gate, qubits: List[int]) -> Instruction:
-    return Instruction(
-        gate_def=gatedef_from_gatething(gate.__class__),
-        parameter_bindings=parameter_bindings_from_gate(gate),
-        bit_bindings=qubits)
+
+def ir_instruction_from_native(gate: braket.circuits.Gate,
+                               qubits: List[int]) -> Instruction:
+    return Instruction(gate_def=gatedef_from_gatething(gate.__class__),
+                       parameter_bindings=parameter_bindings_from_gate(gate),
+                       bit_bindings=qubits)
+
 
 def native_to_ir(qc: braket.circuits.Circuit) -> Circuit:
-    instructions = list(ir_instruction_from_native(x[0], x[1]) for x in native_instructions(qc))
+    instructions = list(
+        ir_instruction_from_native(x[0], x[1])
+        for x in native_instructions(qc))
     qubits = list(range(qc.qubit_count))
-    return Circuit(
-        dialect_name = __dialect_name__, 
-        instructions = instructions, 
-        qubits=qubits)
+    return Circuit(dialect_name=__dialect_name__,
+                   instructions=instructions,
+                   qubits=qubits)
+
 
 def braket_gate_from_instruction(i: Instruction):
     gclass = getattr(braket.circuits.Gate, i.gate_def.name)
     gate = gclass(**i.parameter_bindings)
     return gate
+
 
 def ir_to_native(c: Circuit) -> braket.circuits.Circuit:
     result = braket.circuits.Circuit()
@@ -124,5 +139,7 @@ def ir_to_native(c: Circuit) -> braket.circuits.Circuit:
         result.add_instruction(i)
     return result
 
-def native_circuits_are_equivalent(c1: braket.circuits.Circuit, c2: braket.circuits.Circuit) -> bool:
+
+def native_circuits_are_equivalent(c1: braket.circuits.Circuit,
+                                   c2: braket.circuits.Circuit) -> bool:
     return c1.__eq__(c2)
