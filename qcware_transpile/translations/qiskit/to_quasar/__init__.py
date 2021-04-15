@@ -107,10 +107,7 @@ def translate(c: qiskit.QuantumCircuit,
     the original circuit, but by and large it works
     """
     if should_transpile:
-        basis_gates = list(
-            {x.name
-             for x in translated_gates(translation_set())})
-        c2 = qiskit.compiler.transpile(c, basis_gates=basis_gates)
+        c2 = qiskit.compiler.transpile(c, basis_gates=basis_gates())
     else:
         c2 = c.copy()
     # if not native_is_translatable(c2):
