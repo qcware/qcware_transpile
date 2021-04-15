@@ -37,11 +37,17 @@ def translation_set():
         TranslationRule(
             pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]),
             replacement=Circuit.from_tuples(
-                qiskit_d, [('cx', {}, [1, 0]),
-                           ('cry', {
-                               'theta': lambda pm: double_angle(pm[
-                                   (0, 'theta')])
-                           }, [0, 1]), ('cx', {}, [1, 0])]))
+                qiskit_d,
+                [('h', {}, [0]),
+                 ('h', {}, [1]),
+                 ('cz', {}, [0,1]),
+                 # Note!  We don't double_angle there because the angle
+                 # to give to ry is actually theta/2
+                 ('ry', {'theta': lambda pm: pm[(0, 'theta')]}, [0]),
+                 ('ry', {'theta': lambda pm: -pm[(0, 'theta')]}, [1]),
+                 ('cz', {}, [0,1]),
+                 ('h', {}, [0]),
+                 ('h', {}, [1])]))
     }
     # the U2/U3 rules are disabled for now as they seem to be problematic
 
