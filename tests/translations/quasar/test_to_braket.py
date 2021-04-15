@@ -20,7 +20,7 @@ def quasar_statevector(circuit: quasar.Circuit):
     return sv
 
 
-def braket_statevector(circuit):
+def braket_statevector(circuit: braket.circuits.Circuit):
     b = braket.devices.LocalSimulator()
     sv = b.run(circuit.state_vector(), shots=0).result().values[0]
     return sv
