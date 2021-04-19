@@ -9,7 +9,7 @@ QSharp python docs: https://docs.microsoft.com/en-us/python/qsharp-core/qsharp
 """
 from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit
-from typing import Tuple
+from typing import Tuple, Set
 from pyrsistent import pset
 from pyrsistent.typing import PSet
 
@@ -23,15 +23,20 @@ def simple_gate(t: Tuple[str, set, int]):
 def gate_defs() -> PSet[GateDef]:
     # a list of basic gates.  Currently these come from the Microsoft.Quantum.Intrinsics
     # library
-    simple_gates = (("CCNOT", {}, 3), ("CNOT", {}, 2), ("H", {}, 1),
-                    ("I", {}, 1), ("Rx", {"theta"}, 1), ("Ry", {"theta"}, 1),
-                    ("Rz", {"theta"}, 1), ("S", {}, 1), ("SWAP", {}, 2),
-                    ("T", {}, 1), ("X", {}, 1), ("Y", {}, 1), ("Z", {}, 1))
+    simple_gates: Tuple[Tuple[str, Set,
+                              int]] = (("CCNOT", set(), 3), ("CNOT", set(), 2),
+                                       ("H", set(), 1), ("I", set(), 1),
+                                       ("Rx", {"theta"}, 1), ("Ry", {"theta"},
+                                                              1),
+                                       ("Rz", {"theta"}, 1), ("S", set(), 1),
+                                       ("SWAP", set(), 2), ("T", set(), 1),
+                                       ("X", set(), 1), ("Y", set(),
+                                                         1), ("Z", set(), 1)) # type: ignore
     return pset({simple_gate(t) for t in simple_gates})
 
 
 def dialect() -> Dialect:
-    return Dialect(name=__dialect_name__, gate_defs=gate_defs())
+    return Dialect(name=__dialect_name__, gate_defs=gate_defs()) # type: ignore
 
 
 def ir_to_native(c: Circuit) -> str:
@@ -47,4 +52,6 @@ operation Circuit(): Result {
 """
     return header + footer
 
-bellpair = Circuit.from_tuples(dialect(), (("H", {}, [0]), ("CNOT", {}, [0, 1])))
+
+bellpair = Circuit.from_tuples(dialect(),
+                               (("H", {}, [0]), ("CNOT", {}, [0, 1])))

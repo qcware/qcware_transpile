@@ -233,7 +233,7 @@ def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
     return Circuit(
         dialect_name=__dialect_name__,
         instructions=instructions,  # type: ignore
-        qubits=qubits,
+        qubits=qubits, # type: ignore
         metadata={'clbits': pvector(clbits)})  # type: ignore
 
 

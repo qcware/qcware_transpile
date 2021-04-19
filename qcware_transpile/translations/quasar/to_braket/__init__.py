@@ -76,6 +76,6 @@ def translate(c: quasar.Circuit) -> braket.circuits.Circuit:
         return thread_first(c, quasar_dialect.native_to_ir,
                             lambda x: simple_translate(translation_set(), x),
                             braket_dialect.ir_to_native,
-                            occupy_empty_qubits)
+                            braket_dialect.occupy_empty_qubits)
     except ViolationError:
         raise TranslationException(audit(c))

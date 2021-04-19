@@ -1,5 +1,4 @@
-from qcware_transpile.matching import (TranslationRule, TranslationSet,
-                                       trivial_rule, trivial_rules,
+from qcware_transpile.matching import (TranslationSet, trivial_rules,
                                        translated_gates, untranslated_gates,
                                        simple_translate,
                                        circuit_is_simply_translatable_by,
@@ -7,9 +6,13 @@ from qcware_transpile.matching import (TranslationRule, TranslationSet,
 from qcware_transpile.dialects import quasar as quasar_dialect, qiskit as qiskit_dialect
 import qiskit
 from qcware_transpile import TranslationException
+from qcware_transpile.circuits import Circuit
+from qcware_transpile.instructions import Instruction
+from typing import List
 from pyrsistent import pset
 from icontract.errors import ViolationError
 import quasar
+from itertools import dropwhile
 from toolz.functoolz import thread_first
 
 
@@ -35,16 +38,24 @@ def translation_set():
     # translate reset or barrier rules.
     # we "remove" measure rules by converting them to I gates, which is a hack
     # to allow qiskit circuits with edge bits that are measured.
-    rules = pset().union(trivial_rules(
-        qiskit_d, quasar_d, trivial_gates))
+    rules = pset().union(trivial_rules(qiskit_d, quasar_d, trivial_gates))
     return TranslationSet.from_trivial_rules(from_dialect=qiskit_d,
-                                        to_dialect=quasar_d,
-                                        rules=rules)
+                                             to_dialect=quasar_d,
+                                             rules=rules)
 
 
 target_gatenames = sorted(
     [x.name for x in translation_set().to_dialect.gate_defs])
 untranslated = sorted([x.name for x in untranslated_gates(translation_set())])
+
+
+def instructions_after_last_measurement(qdc: Circuit) -> List[Instruction]:
+    instructions_after_first_measurement = dropwhile(
+        lambda x: x.gate_def.name != 'measure', qdc.instructions)
+    result = list(
+        dropwhile(lambda x: x.gate_def.name == 'measure',
+                  instructions_after_first_measurement))
+    return result
 
 
 def audit(c: qiskit.QuantumCircuit):
@@ -65,6 +76,15 @@ def audit(c: qiskit.QuantumCircuit):
 
     result = {}
 
+    # check to see if there are any measurement gates not as the last
+    # instructions in the circuit (soon check for save_state
+    # instructions)
+    ialm = instructions_after_last_measurement(qdc)
+    if len(ialm) > 0:
+        result['instructions_after_last_measurement'] = [
+            i.gate_def.name for i in ialm
+        ]
+
     # if len(used_qubits) == 0:
     #     result["no_used_qubits"] = True
     # else:
@@ -77,7 +97,9 @@ def audit(c: qiskit.QuantumCircuit):
     #         result['unused_edge_qubits'] = unused_edge_qubits
 
     if len(untranslatable) > 0:
-        result['untranslatable_instructions'] = untranslatable
+        result['untranslatable_instructions'] = [
+            i.gate_def.name for i in untranslatable
+        ]
     return result
 
 
@@ -113,8 +135,9 @@ def translate(c: qiskit.QuantumCircuit,
     # if not native_is_translatable(c2):
     #     raise TranslationException(audit(c2))
     try:
-        return thread_first(c2, qiskit_dialect.native_to_ir,
-                            lambda x: simple_translate(translation_set(), x),
-                            lambda x: quasar_dialect.ir_to_native(x, fill_unused_edge_qubits=True))
+        return thread_first(
+            c2, qiskit_dialect.native_to_ir,
+            lambda x: simple_translate(translation_set(), x), lambda x:
+            quasar_dialect.ir_to_native(x, fill_unused_edge_qubits=True))
     except ViolationError:
         raise TranslationException(audit(c2))

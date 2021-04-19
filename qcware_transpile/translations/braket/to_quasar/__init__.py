@@ -9,7 +9,7 @@ from icontract.errors import ViolationError
 import braket.circuits
 import quasar    
 from toolz.functoolz import thread_first
-from typing import Dict
+from typing import Dict, Any
 
 
 def half_angle(theta):
@@ -59,7 +59,7 @@ def audit(c: braket.circuits.Circuit) -> Dict:
     irc = braket_dialect.native_to_ir(c)
     untranslatable = untranslatable_instructions(irc, translation_set())
 
-    result = {}
+    result: Dict[str, Any] = {}
     if len(untranslatable) > 0:
         result['untranslatable_instructions'] = untranslatable
     # currently there is no way to express leading or following "empty" qubits in quasar

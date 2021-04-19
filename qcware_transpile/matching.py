@@ -184,7 +184,7 @@ class TranslationSet(object):
         """
         return cls(from_dialect=from_dialect,
                    to_dialect=to_dialect,
-                   rules=rules,
+                   rules=rules, # type: ignore
                    trivial_dispatch=pmap({
                        rule.pattern.instructions[0].gate_def.name: rule
                        for rule in rules
@@ -204,11 +204,11 @@ def matching_rules(ts: TranslationSet, c: Circuit) -> PSet[TranslationRule]:
     """
     if ts.is_trivial():
         if len(c.instructions) == 0:
-            return set()
+            return pset(set())
         else:
             gate_name = c.instructions[0].gate_def.name
             rule = ts.trivial_dispatch.get(gate_name, None)
-            return {rule} if rule is not None else set()
+            return pset({rule} if rule is not None else set())
     else:
         return pset({
             r
