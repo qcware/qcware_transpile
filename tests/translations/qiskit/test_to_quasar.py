@@ -58,16 +58,11 @@ def test_instructions_after_measurement():
 @given(translatable_circuits)
 @settings(deadline=None)
 def test_translate_qiskit_to_quasar(qiskit_circuit):
-    assume(native_is_translatable(qiskit_circuit))
     note(qiskit_circuit.draw())
-    pv_qiskit = qiskit_probability_vector(qiskit_circuit)
-    transpiled_qiskit_circuit = qiskit.compiler.transpile(
-        qiskit_circuit, basis_gates=basis_gates())
-    note(transpiled_qiskit_circuit.draw())
-    pv_transpiled_qiskit = qiskit_probability_vector(transpiled_qiskit_circuit)
-    assert (numpy.allclose(pv_qiskit, pv_transpiled_qiskit, atol=1e-7))
+    assume(native_is_translatable(qiskit_circuit))
     quasar_native_circuit = translate(qiskit_circuit, should_transpile=True)
     note(str(quasar_native_circuit))
     pv_quasar = quasar_probability_vector(quasar_native_circuit)
+    pv_qiskit = qiskit_probability_vector(qiskit_circuit)
     # this can fail with the default atol
-    #assert (numpy.allclose(pv_qiskit, pv_quasar, atol=0.000001))
+    assert (numpy.allclose(pv_qiskit, pv_quasar, atol=0.000001))
