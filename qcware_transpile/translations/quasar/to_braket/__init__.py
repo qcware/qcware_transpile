@@ -32,6 +32,20 @@ def translation_set():
 
     quasar_d = quasar_dialect.dialect()
     braket_d = braket_dialect.dialect()
+    other_rules = {
+        TranslationRule(
+            pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]),
+            replacement=Circuit.from_tuples(
+                braket_d,
+                [('H', {} [0]),
+                 ('H', {}, [1]),
+                 ('CZ', {}, [0,1]),
+                 ('Ry', {'theta': lambda pm: pm[(0, 'theta')]/2}, [0]),
+                 ('Ry', {'theta': lambda pm: -pm[(0, 'theta')]/2}, [1]),
+                 ('CZ', {}, [0,1]),
+                 ('H', {}, [0]),
+                 ('H', {}, [1])]))
+    }
 
     rules = pset().union(trivial_rules(quasar_d, braket_d, trivial_gates))
     return TranslationSet(from_dialect = quasar_d, 
