@@ -1,8 +1,9 @@
-from qcware_transpile.matching import (TranslationSet, trivial_rules, 
-                                       untranslatable_instructions, untranslated_gates, 
-                                       simple_translate)
+from qcware_transpile.matching import (TranslationRule, TranslationSet, 
+                                       trivial_rules, untranslatable_instructions, 
+                                       untranslated_gates, simple_translate)
 from qcware_transpile.dialects import (quasar as quasar_dialect, braket as
                                        braket_dialect)
+from qcware_transpile.circuits import Circuit
 from qcware_transpile import TranslationException
 from pyrsistent import pset
 from icontract.errors import ViolationError
@@ -37,11 +38,13 @@ def translation_set():
             pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]),
             replacement=Circuit.from_tuples(
                 braket_d,
-                [('H', {} [0]),
+                [('H', {}, [0]),
                  ('H', {}, [1]),
                  ('CZ', {}, [0,1]),
-                 ('Ry', {'theta': lambda pm: pm[(0, 'theta')]/2}, [0]),
-                 ('Ry', {'theta': lambda pm: -pm[(0, 'theta')]/2}, [1]),
+                 # Note!  We don't double_angle there because the angle
+                 # to give to ry is actually theta/2
+                 ('Ry', {'angle': lambda pm: pm[(0, 'theta')]/2}, [0]),
+                 ('Ry', {'angle': lambda pm: -pm[(0, 'theta')]/2}, [1]),
                  ('CZ', {}, [0,1]),
                  ('H', {}, [0]),
                  ('H', {}, [1])]))
