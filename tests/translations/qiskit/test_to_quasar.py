@@ -8,6 +8,7 @@ from ...strategies.qiskit import gates, circuits
 import qiskit  # type: ignore
 import quasar  # type: ignore
 import numpy  # type: ignore
+import pytest
 
 ts = translation_set()
 translatable_gatedefs = [
@@ -26,7 +27,7 @@ def quasar_probability_vector(circuit: quasar.Circuit):
 
 def qiskit_probability_vector(circuit: qiskit.QuantumCircuit):
     backend = qiskit.Aer.get_backend('statevector_simulator')
-    backend.set_options(zero_threshold=1e-10)
+    backend.set_options(zero_threshold=1e-20)
     sv = qiskit.execute(circuit, backend).result().data()['statevector']
     return abs(sv)
 

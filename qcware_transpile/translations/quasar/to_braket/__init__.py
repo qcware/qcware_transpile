@@ -50,7 +50,7 @@ def translation_set():
                  ('H', {}, [1])]))
     }
 
-    rules = pset().union(trivial_rules(quasar_d, braket_d, trivial_gates))
+    rules = pset().union(trivial_rules(quasar_d, braket_d, trivial_gates)).union(other_rules)
     return TranslationSet(from_dialect = quasar_d, 
                           to_dialect = braket_d, 
                           rules=rules)
