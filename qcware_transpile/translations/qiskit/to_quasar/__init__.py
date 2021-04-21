@@ -29,7 +29,8 @@ def translation_set():
                      ('cy', 'CY'), ('cz', 'CZ'), ('ccx', 'CCX'),
                      ('swap', 'SWAP'), ('cswap', 'CSWAP'),
                      ('rx', 'Rx', half_angle), ('ry', 'Ry', half_angle),
-                     ('rz', 'Rz', half_angle), ('measure', 'I')}  #('u1', 'u1')
+                     ('rz', 'Rz', half_angle), ('rxx', 'XX_ion', half_angle), 
+                     ('measure', 'I')}  #('u1', 'u1')
 
     quasar_d = quasar_dialect.dialect()
     qiskit_d = qiskit_dialect.dialect()

@@ -43,8 +43,8 @@ def translation_set():
                  ('CZ', {}, [0,1]),
                  # Note!  We don't double_angle there because the angle
                  # to give to ry is actually theta/2
-                 ('Ry', {'angle': lambda pm: pm[(0, 'theta')]/2}, [0]),
-                 ('Ry', {'angle': lambda pm: -pm[(0, 'theta')]/2}, [1]),
+                 ('Ry', {'angle': lambda pm: pm[(0, 'theta')]/2.0}, [0]),
+                 ('Ry', {'angle': lambda pm: -pm[(0, 'theta')]/2.0}, [1]),
                  ('CZ', {}, [0,1]),
                  ('H', {}, [0]),
                  ('H', {}, [1])]))
