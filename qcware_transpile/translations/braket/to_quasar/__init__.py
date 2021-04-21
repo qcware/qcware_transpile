@@ -34,7 +34,7 @@ def translation_set():
     braket_d = braket_dialect.dialect()
 
     rules = pset().union(trivial_rules(braket_d, quasar_d, trivial_gates))
-    return TranslationSet(from_dialect = braket_d, 
+    return TranslationSet.from_trivial_rules(from_dialect = braket_d, 
                           to_dialect = quasar_d, 
                           rules=rules)
 
