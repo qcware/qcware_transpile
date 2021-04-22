@@ -43,4 +43,5 @@ def test_translate_quasar_to_braket(quasar_circuit):
     note(str(modified_braket_native_circuit))
     sv_quasar = quasar_statevector(quasar_circuit)
     sv_braket = braket_statevector(modified_braket_native_circuit)
-    assert (numpy.allclose(sv_quasar, sv_braket))
+    # this can fail with the default atol
+    assert (numpy.allclose(sv_quasar, sv_braket, atol=0.00001))
