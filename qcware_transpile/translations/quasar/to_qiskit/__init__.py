@@ -14,6 +14,15 @@ import qiskit
 from toolz.functoolz import thread_first
 
 
+# Qiskit: https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/circuit/library/standard_gates/rx.py#L93
+#        cos = math.cos(self.params[0] / 2)
+#        sin = math.sin(self.params[0] / 2)
+#        return numpy.array([[cos, -1j * sin],
+#                            [-1j * sin, cos]], dtype=dtype)
+# vs quasar: https://github.com/qcware/quasar/blob/master/quasar/circuit.py#L226
+#        c = np.cos(theta)
+#        s = np.sin(theta)
+# so we must double angles from quasar to braket
 def double_angle(theta):
     return 2 * theta
 
@@ -22,13 +31,11 @@ def translation_set():
     """
     Creates a translation set from quasar to qiskit
     """
-    trivial_gates = {('I', 'id'), ('H', 'h'), ('X', 'x'),
-                     ('Y', 'y'), ('Z', 'z'), ('S', 's'),
-                     ('T', 't'), ('CX', 'cx'), ('CY', 'cy'),
-                     ('CZ', 'cz'), ('CCX', 'ccx'), ('u1', 'u1'),
+    trivial_gates = {('I', 'id'), ('H', 'h'), ('X', 'x'), ('Y', 'y'),
+                     ('Z', 'z'), ('S', 's'), ('T', 't'), ('CX', 'cx'),
+                     ('CY', 'cy'), ('CZ', 'cz'), ('CCX', 'ccx'), ('u1', 'u1'),
                      ('SWAP', 'swap'), ('CSWAP', 'cswap'),
-                     ('Rx', 'rx', double_angle),
-                     ('Ry', 'ry', double_angle),
+                     ('Rx', 'rx', double_angle), ('Ry', 'ry', double_angle),
                      ('Rz', 'rz', double_angle),
                      ('XX_ion', 'rxx', double_angle)}
 
@@ -39,16 +46,22 @@ def translation_set():
             pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]),
             replacement=Circuit.from_tuples(
                 qiskit_d,
-                [('h', {}, [0]),
-                 ('h', {}, [1]),
-                 ('cz', {}, [0,1]),
-                 # Note!  We don't double_angle there because the angle
-                 # to give to ry is actually theta/2
-                 ('ry', {'theta': lambda pm: pm[(0, 'theta')]}, [0]),
-                 ('ry', {'theta': lambda pm: -pm[(0, 'theta')]}, [1]),
-                 ('cz', {}, [0,1]),
-                 ('h', {}, [0]),
-                 ('h', {}, [1])]))
+                [
+                    ('h', {}, [0]),
+                    ('h', {}, [1]),
+                    ('cz', {}, [0, 1]),
+                    # Note!  We don't double_angle there because the angle
+                    # to give to ry is actually theta/2
+                    ('ry', {
+                        'theta': lambda pm: pm[(0, 'theta')]
+                    }, [0]),
+                    ('ry', {
+                        'theta': lambda pm: -pm[(0, 'theta')]
+                    }, [1]),
+                    ('cz', {}, [0, 1]),
+                    ('h', {}, [0]),
+                    ('h', {}, [1])
+                ]))
     }
     # the U2/U3 rules are disabled for now as they seem to be problematic
 
