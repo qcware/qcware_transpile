@@ -1,5 +1,5 @@
 import braket.devices
-from hypothesis import given, note, assume, settings
+from hypothesis import given, note, assume, settings, reproduce_failure
 from qcware_transpile.translations.quasar.to_braket import translation_set, native_is_translatable 
 from qcware_transpile.matching import translated_gates, simple_translate
 from qcware_transpile.dialects import braket as braket_dialect, quasar as quasar_dialect
@@ -28,6 +28,10 @@ def braket_statevector(circuit: braket.circuits.Circuit):
 
 @given(translatable_circuits)
 @settings(deadline=None)
+# @reproduce_failure('6.9.1', b'AAEBEgABYyGxCRIBAxVAQo8e/AAAAQ==')
+# @reproduce_failure('6.9.1', b'AAEBAQAAACFgpsgcAAAB')
+# @reproduce_failure('6.9.1', b'AAEBEAcAAANWdxNeAAAB')
+# @reproduce_failure('6.9.1', b'AAEBAAsAAAAA2r47AAAB')
 def test_translate_quasar_to_braket(quasar_circuit):
     assume(native_is_translatable(quasar_circuit))
     note(str(quasar_circuit))
