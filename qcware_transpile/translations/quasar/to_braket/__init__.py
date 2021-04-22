@@ -1,5 +1,6 @@
-from qcware_transpile.matching import (TranslationRule, TranslationSet, 
-                                       trivial_rules, untranslatable_instructions, 
+from qcware_transpile.matching import (TranslationRule, TranslationSet,
+                                       trivial_rules,
+                                       untranslatable_instructions,
                                        untranslated_gates, simple_translate)
 from qcware_transpile.dialects import (quasar as quasar_dialect, braket as
                                        braket_dialect)
@@ -8,11 +9,21 @@ from qcware_transpile import TranslationException
 from pyrsistent import pset
 from icontract.errors import ViolationError
 import braket.circuits
-import quasar    
+import quasar
 from toolz.functoolz import thread_first
 from typing import Dict
 
 
+# for an Rx gate
+# as per https://github.com/aws/amazon-braket-sdk-python/blob/main/src/braket/circuits/gates.py#L422
+#  def to_matrix(self) -> np.ndarray:
+#        cos = np.cos(self.angle / 2)
+#        sin = np.sin(self.angle / 2)
+#        return np.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=complex)
+# vs quasar: https://github.com/qcware/quasar/blob/master/quasar/circuit.py#L226
+#        c = np.cos(theta)
+#        s = np.sin(theta)
+# so we must double angles from quasar to braket
 def double_angle(theta):
     return 2 * theta
 
@@ -21,15 +32,12 @@ def translation_set():
     """
     Creates a translation set from quasar to braket
     """
-    trivial_gates = {('I', 'I'), ('H', 'H'), ('X', 'X'), 
-                     ('Y', 'Y'), ('Z', 'Z'), ('S', 'S'), 
-                     ('ST', 'Si'), ('T', 'T'), ('TT', 'Ti'), 
-                     ('CX', 'CNot'), ('CY', 'CY'), ('CZ', 'CZ'), 
-                     ('CCX', 'CCNot'), ('u1', 'PhaseShift'), 
-                     ('SWAP', 'Swap'), ('CSWAP', 'CSwap'), 
-                     ('Rx', 'Rx', double_angle), 
-                     ('Ry', 'Ry', double_angle), 
-                     ('Rz', 'Rz', double_angle)}
+    trivial_gates = {('I', 'I'), ('H', 'H'), ('X', 'X'), ('Y', 'Y'),
+                     ('Z', 'Z'), ('S', 'S'), ('ST', 'Si'), ('T', 'T'),
+                     ('TT', 'Ti'), ('CX', 'CNot'), ('CY', 'CY'), ('CZ', 'CZ'),
+                     ('CCX', 'CCNot'), ('u1', 'PhaseShift'), ('SWAP', 'Swap'),
+                     ('CSWAP', 'CSwap'), ('Rx', 'Rx', double_angle),
+                     ('Ry', 'Ry', double_angle), ('Rz', 'Rz', double_angle)}
 
     quasar_d = quasar_dialect.dialect()
     braket_d = braket_dialect.dialect()
@@ -38,21 +46,28 @@ def translation_set():
             pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]),
             replacement=Circuit.from_tuples(
                 braket_d,
-                [('H', {}, [0]),
-                 ('H', {}, [1]),
-                 ('CZ', {}, [0,1]),
-                 # Note!  We don't double_angle there because the angle
-                 # to give to ry is actually theta/2
-                 ('Ry', {'angle': lambda pm: pm[(0, 'theta')]/2}, [0]),
-                 ('Ry', {'angle': lambda pm: -pm[(0, 'theta')]/2}, [1]),
-                 ('CZ', {}, [0,1]),
-                 ('H', {}, [0]),
-                 ('H', {}, [1])]))
+                [
+                    ('H', {}, [0]),
+                    ('H', {}, [1]),
+                    ('CZ', {}, [0, 1]),
+                    # Note!  We don't double_angle there because the angle
+                    # to give to ry is actually theta/2
+                    ('Ry', {
+                        'angle': lambda pm: pm[(0, 'theta')]
+                    }, [0]),
+                    ('Ry', {
+                        'angle': lambda pm: -pm[(0, 'theta')]
+                    }, [1]),
+                    ('CZ', {}, [0, 1]),
+                    ('H', {}, [0]),
+                    ('H', {}, [1])
+                ]))
     }
 
-    rules = pset().union(trivial_rules(quasar_d, braket_d, trivial_gates)).union(other_rules)
-    return TranslationSet(from_dialect = quasar_d, 
-                          to_dialect = braket_d, 
+    rules = pset().union(trivial_rules(quasar_d, braket_d,
+                                       trivial_gates)).union(other_rules)
+    return TranslationSet(from_dialect=quasar_d,
+                          to_dialect=braket_d,
                           rules=rules)
 
 
@@ -76,12 +91,14 @@ def audit(c: quasar.Circuit) -> Dict:
         result['circuit_not_centered'] = True  # type: ignore
     return result
 
+
 def native_is_translatable(c: quasar.Circuit):
     """
     A native quasar circuit is translatable to braket if it
     is "centered" (ie no leading qubits)
     """
     return len(audit(c)) == 0
+
 
 def translate(c: quasar.Circuit) -> braket.circuits.Circuit:
     """
