@@ -10,6 +10,36 @@ from inspect import isclass, signature
 from functools import lru_cache
 from icontract import require
 
+# the following from
+# https://stackoverflow.com/questions/22373927/get-traceback-of-warnings
+# since qiskit tends to raise a lot of deprecation warnings which we
+# wouldn't see once the functionality was actually removed (for
+# example, we reflect on the code, see that C3SXGate has an 'angle'
+# argument and attempt to create one, but the angle argument is
+# deprecated; once the argument is removed, the reflection code will
+# no longer use it, so that warning isn't as useful as it could be).
+# The following code is to be used selectively to trace where those
+# warnings are coming from and TEMPORARILY turn them off
+
+import traceback
+import warnings
+import sys
+
+
+def warn_with_traceback(message,
+                        category,
+                        filename,
+                        lineno,
+                        file=None,
+                        line=None):
+    log = sys.stderr  # file if hasattr(file,'write') else sys.stderr
+    traceback.print_stack(file=log)
+    log.write(warnings.formatwarning(message, category, filename, lineno,
+                                     line))
+
+
+# warnings.showwarning = warn_with_traceback
+
 __dialect_name__ = "qiskit"
 
 
@@ -62,7 +92,12 @@ def number_of_qubits_from_gatething(thing: qiskit.circuit.Gate) -> int:
     # of the gate are the controls."), see
     # https://github.com/Qiskit/qiskit-terra/qiskit/circuit/controlledgate.py
     params = {k: 0 for k in param_names}
-    g = thing(**params)
+    # disabling warnings for this line only to avoid Qiskit's deprecationwarnings.
+    # this is mildly dangerous but should be ok in this case because we're
+    # only using parameters which were declared.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        g = thing(**params)
     return g.num_qubits
 
 
@@ -77,7 +112,12 @@ def gatething_name(thing: type) -> str:
     # we're so far assuming it's ok to call gate instantiation with
     # all parameters being the float 0
     parameters = {name: 0 for name in parameter_names}
-    gate = thing(**parameters)
+    # disabling warnings for this line only to avoid Qiskit's deprecationwarnings.
+    # this is mildly dangerous but should be ok in this case because we're
+    # only using parameters which were declared.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        gate = thing(**parameters)
     return gate.name
 
 
@@ -207,17 +247,15 @@ def normalized_instructions(c: qiskit.QuantumCircuit):
 
 
 @require(lambda gate: gate.name in valid_gatenames())
-def ir_instruction_from_native(
-        gate: qiskit.circuit.Gate, qubits: List[int], clbits: List[int]) -> Instruction:
+def ir_instruction_from_native(gate: qiskit.circuit.Gate, qubits: List[int],
+                               clbits: List[int]) -> Instruction:
     return Instruction(
         gate_def=gatedef_from_gatething(gate.__class__),
         parameter_bindings=parameter_bindings_from_gate(gate),  # type: ignore
         bit_bindings=qubits,
         # this below must be a pvector to handle some hashing
-        metadata={
-            'clbits':
-            pvector(clbits)
-        } if len(clbits) > 0 else {})  # type: ignore
+        metadata={'clbits': pvector(clbits)}
+        if len(clbits) > 0 else {})  # type: ignore
 
 
 def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
@@ -233,7 +271,7 @@ def native_to_ir(qc: qiskit.QuantumCircuit) -> Circuit:
     return Circuit(
         dialect_name=__dialect_name__,
         instructions=instructions,  # type: ignore
-        qubits=qubits, # type: ignore
+        qubits=qubits,  # type: ignore
         metadata={'clbits': pvector(clbits)})  # type: ignore
 
 
@@ -252,7 +290,7 @@ def ir_to_native(c: Circuit) -> qiskit.QuantumCircuit:
     """
     # qiskit wants the number of qubits first.
     num_qubits = max(c.qubits) - min(c.qubits) + 1
-    _clbits = c.metadata.get('clbits',[]) if c.metadata is not None else {}
+    _clbits = c.metadata.get('clbits', []) if c.metadata is not None else {}
     # this is slightly different because we only list classical bits used and assume
     # they start from 0 without checking for unused edge bits.
     num_clbits = len(_clbits)
