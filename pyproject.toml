@@ -31,6 +31,7 @@ sphinx-rtd-theme = "^0.5.1"
 qiskit = "^0.23.5"
 snakeviz = "^2.1.0"
 pydantic = "1.7.3"
+pipdeptree = "^2.0.0"
 
 [tool.poetry.extras]
 qcware-quasar = ["qcware-quasar"]

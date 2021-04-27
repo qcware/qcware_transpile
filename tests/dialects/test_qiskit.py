@@ -1,3 +1,24 @@
+import traceback
+import warnings
+import sys
+
+# this trick is here as well to try and pin down where qiskit is throwing
+# more errors on import
+def warn_with_traceback(message,
+                        category,
+                        filename,
+                        lineno,
+                        file=None,
+                        line=None):
+    log = sys.stdout  # file if hasattr(file,'write') else sys.stderr
+    traceback.print_stack(file=log)
+    log.write(warnings.formatwarning(message, category, filename, lineno,
+                                     line))
+
+
+# warnings.showwarning = warn_with_traceback
+
+
 from ..strategies.qiskit import circuits
 from qcware_transpile.dialects.qiskit import (native_to_ir, ir_to_native,
                                               native_circuits_are_equivalent,
