@@ -39,14 +39,21 @@ def circuits(draw,
     circuit_gates = draw(lists(gates(num_qubits), min_size=length, max_size=length))
     result = Template("""
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Diagnostics;
 
     operation TestCircuit(): Unit {
 
         use qs = Qubit[{{num_qubits}}];
 
+        Message("Initial state |000>:");
+        DumpMachine();
+
         {% for gate in circuit_gates %} 
         {{gate}}; 
         {% endfor %}
+
+        Message("After:");
+        DumpMachine();
 
         ResetAll(qs);
     }
@@ -54,4 +61,4 @@ def circuits(draw,
     return result.render(num_qubits=num_qubits, circuit_gates=circuit_gates)
 
 def run_generated_circuit(qc):
-    compile(qc).simulate()
+    return compile(qc).simulate()
