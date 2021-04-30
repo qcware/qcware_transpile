@@ -37,9 +37,6 @@ def circuits(draw,
     result = Template("""
     namespace NamespaceQFT {
         open Microsoft.Quantum.Intrinsic;
-        open Microsoft.Quantum.Diagnostics;
-        open Microsoft.Quantum.Math;
-        open Microsoft.Quantum.Arrays;
 
         operation TestCircuit(): Unit {
 
