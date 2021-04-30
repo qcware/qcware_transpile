@@ -34,7 +34,6 @@ def circuits(draw,
              min_length, 
              max_length):
     length = draw(integers(min_value=min_length, max_value=max_length))
-    length = draw(integers(min_value=min_length, max_value=max_length))
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
     circuit_gates = draw(lists(gates(num_qubits), min_size=length, max_size=length))
     result = Template("""
