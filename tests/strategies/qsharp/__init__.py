@@ -1,7 +1,10 @@
 import math
+from hypothesis import given, settings
 from hypothesis.strategies import (composite, floats, integers, lists, sampled_from)
 from jinja2 import Template
 from qcware_transpile.dialects.qsharp.qsharp_dialect import dialect
+from qsharp import compile
+from qsharp.loader import QSharpCallable
 
 @composite
 def gates(draw, 
@@ -13,7 +16,7 @@ def gates(draw,
                   min_size=len(gate_def.qubit_ids), 
                   max_size=len(gate_def.qubit_ids), 
                   unique=True))
-    qubit_str = ", ".join("q[%d]" % (q) for q in qubits)
+    qubit_str = ", ".join("qs[%d]" % (q) for q in qubits)
     result = gate_def.name + "(" + qubit_str + ")"
     if gate_def.parameter_names:
         angles = draw(
@@ -35,18 +38,20 @@ def circuits(draw,
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
     circuit_gates = draw(lists(gates(num_qubits), min_size=length, max_size=length))
     result = Template("""
-    namespace NamespaceQFT {
-        open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Intrinsic;
 
-        operation TestCircuit(): Unit {
+    operation TestCircuit(): Unit {
 
-            use qs = Qubit[{{num_qubits}}];
+        use qs = Qubit[{{num_qubits}}];
 
-            {% for gate in circuit_gates %} 
-            {{gate}} 
-            {% endfor %}
+        {% for gate in circuit_gates %} 
+        {{gate}}; 
+        {% endfor %}
 
-            ResetAll(qs);
-        }
+        ResetAll(qs);
+    }
     """)
     return result.render(num_qubits=num_qubits, circuit_gates=circuit_gates)
+
+def run_generated_circuit(qc):
+    compile(qc).simulate()
