@@ -74,26 +74,6 @@ def run_generated_circuit(qc_nooutput):
         result = parse_dump_machine(lines)
     return result
 
-    
-test_circuit = """open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Diagnostics as Diagnostics;
 
-    operation TestCircuit(): Unit {
-
-        use qs = Qubit[3];
-
-        Message("Initial state |000>:");
-
-         
-        Y(qs[0]); 
-         
-        Y(qs[2]); 
-        
-
-        Message("After:");
-        Diagnostics.DumpMachine("{{ output_file }}");
-
-        ResetAll(qs);
-    }"""
 ex = circuits(2,3,2,3).example()
 run_generated_circuit(ex)
