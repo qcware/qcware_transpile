@@ -6,7 +6,6 @@ from hypothesis.strategies import (composite, floats, integers, lists,
 from jinja2 import Template
 from qcware_transpile.dialects.qsharp.qsharp_dialect import dialect
 from qsharp import compile
-from qsharp.loader import QSharpCallable
 import tempfile
 import parse
 
@@ -76,6 +75,25 @@ def run_generated_circuit(qc_nooutput):
     return result
 
     
+test_circuit = """open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Diagnostics as Diagnostics;
 
+    operation TestCircuit(): Unit {
+
+        use qs = Qubit[3];
+
+        Message("Initial state |000>:");
+
+         
+        Y(qs[0]); 
+         
+        Y(qs[2]); 
+        
+
+        Message("After:");
+        Diagnostics.DumpMachine("{{ output_file }}");
+
+        ResetAll(qs);
+    }"""
 ex = circuits(2,3,2,3).example()
 run_generated_circuit(ex)
