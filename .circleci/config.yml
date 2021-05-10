@@ -12,7 +12,8 @@ workflows:
   main:
     jobs:
       - python/test:
-          executor: qsharp
+          executor:
+            name: qsharp
           args: '-E qcware-quasar -E qiskit -E pyzx -E braket -E qsharp'
           pkg-manager: poetry
           test-tool: pytest
