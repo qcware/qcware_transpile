@@ -42,4 +42,4 @@ def test_translate_quasar_to_qsharp(quasar_circuit):
     note(str(qsharp_native_circuit))
     sv_quasar = quasar_statevector(quasar_circuit)
     sv_qsharp = qsharp_statevector(qsharp_native_circuit)
-    assert (numpy.allclose(sv_quasar, sv_qsharp))
+    assert (numpy.allclose(sv_quasar, sv_qsharp, atol=1e-07))
