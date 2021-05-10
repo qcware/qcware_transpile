@@ -4,7 +4,7 @@ orbs:
   python: circleci/python@1.4.0
 
 executors:
-  default:
+  qsharp:
     docker:
       - image: vputz/cimg_python_qsharp
 
@@ -12,6 +12,7 @@ workflows:
   main:
     jobs:
       - python/test:
+          executor: qsharp
           args: '-E qcware-quasar -E qiskit -E pyzx -E braket -E qsharp'
           pkg-manager: poetry
           test-tool: pytest
