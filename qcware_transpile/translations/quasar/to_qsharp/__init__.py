@@ -67,6 +67,7 @@ def translate(c: quasar.Circuit) -> str:
         raise TranslationException(audit(c))
     try:
         return thread_first(c, quasar_dialect.native_to_ir,
+                            Circuit.reverse_circuit,
                             lambda x: simple_translate(translation_set(), x),
                             qsharp_dialect.ir_to_native)
     except ViolationError:

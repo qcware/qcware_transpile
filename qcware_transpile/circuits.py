@@ -59,7 +59,7 @@ class Circuit(object):
 
     def __str__(self):
         return "\n".join([self.dialect_name] + [f"Qubits: {self.qubits}"] +
-                         [str(i) for i in self.instructions])
+                         [str(i) for i in self.instructions])    
 
 
 def circuit_conforms_to_dialect(c: Circuit, d: Dialect) -> bool:
@@ -165,3 +165,19 @@ def circuit_bit_targets(c: Circuit) -> PVector[int]:
     return pvector(
         itertools.chain.from_iterable([i.bit_bindings for i in c.instructions
                                        ]))  # type: ignore
+
+
+def reverse_circuit(c: Circuit) -> Circuit:
+    qubits = sorted(c.qubits)
+    new_instructions = []
+    for instruction in c.instructions:
+        new_bit_bindings = []
+        for bit in instruction.bit_bindings:
+            x = qubits[len(qubits)-qubits.index(bit)-1]
+            new_bit_bindings.append(x)
+        new_instructions.append(Instruction(gate_def = instruction.gate_def, 
+                                            parameter_bindings=instruction.parameter_bindings, 
+                                            bit_bindings=new_bit_bindings))
+    return Circuit(dialect_name=c.dialect_name, 
+                   instructions=new_instructions, 
+                   qubits=qubits)
