@@ -8,12 +8,23 @@ executors:
     docker:
       - image: vputz/cimg_python_qsharp
 
-workflows:
-  main:
-    jobs:
+jobs:
+  test:
+    docker:
+      - image: vputz/cimg_python_qsharp
+    steps:
       - python/test:
-          executor:
-            name: qsharp
           args: '-E qcware-quasar -E qiskit -E pyzx -E braket -E qsharp'
           pkg-manager: poetry
           test-tool: pytest
+
+workflows:
+  main:
+    jobs:
+      - test
+      # - python/test:
+      #     executor:
+      #       name: qsharp
+      #     args: '-E qcware-quasar -E qiskit -E pyzx -E braket -E qsharp'
+      #     pkg-manager: poetry
+      #     test-tool: pytest
