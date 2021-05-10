@@ -9,6 +9,8 @@ QSharp python docs: https://docs.microsoft.com/en-us/python/qsharp-core/qsharp
 """
 from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit
+from qcware_transpile.instructions import Instruction
+from jinja2 import Template
 from typing import Tuple, Set
 from pyrsistent import pset
 from pyrsistent.typing import PSet
@@ -30,27 +32,45 @@ def gate_defs() -> PSet[GateDef]:
                                                               1),
                                        ("Rz", {"theta"}, 1), ("S", set(), 1),
                                        ("SWAP", set(), 2), ("T", set(), 1),
-                                       ("X", set(), 1), ("Y", set(),
-                                                         1), ("Z", set(), 1)) # type: ignore
+                                       ("X", set(), 1), ("Y", set(), 1), ("Z", set(), 1), 
+                                       ("R1", {"theta"}, 1)) # type: ignore
     return pset({simple_gate(t) for t in simple_gates})
 
 
 def dialect() -> Dialect:
     return Dialect(name=__dialect_name__, gate_defs=gate_defs()) # type: ignore
 
-
 def ir_to_native(c: Circuit) -> str:
-    header = """
-open Microsoft.Quantum.Intrinsic;
+    operations = []
+    for instruction in c.instructions:
+        qubit_str = ", ".join("qs[%d]" % (q) for q in instruction.bit_bindings)
+        operation = instruction.gate_def.name + "(" + qubit_str + ")"
+        if instruction.parameter_bindings:
+            param_str = ", ".join("%s" % (v) for k, v in instruction.parameter_bindings.items())
+            operation = instruction.gate_def.name + "(" + param_str + ", " + qubit_str + ")"
+        operations.append(operation)
 
-operation Circuit(): Result {
-"""
+    result = Template("""
+    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Diagnostics as Diagnostics;
 
-    footer = """
-  return 1;
-}
-"""
-    return header + footer
+    operation TestCircuit(): Unit {
+
+        use qs = Qubit[{{num_qubits}}];
+
+        Message("Initial state |000>:");
+
+        {% for operation in operations %} 
+        {{operation}}; 
+        {% endfor %}
+
+        Message("After:");
+        Diagnostics.DumpMachine("{{ output_file }}");
+
+        ResetAll(qs);
+    }
+    """)
+    return result.render(num_qubits=max(c.qubits)+1, operations=operations, output_file="{{ output_file }}")
 
 
 bellpair = Circuit.from_tuples(dialect(),
