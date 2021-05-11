@@ -25,7 +25,7 @@ def translation_set():
                      ('Rx', 'Rx', double_angle),
                      ('Ry', 'Ry', double_angle),
                      ('Rz', 'Rz', double_angle),
-                     ('CZ', 'CZ')}
+                     ('CY', 'CY'), ('CZ', 'CZ')}
 
     quasar_d = quasar_dialect.dialect()
     qsharp_d = qsharp_dialect.dialect()

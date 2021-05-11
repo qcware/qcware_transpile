@@ -33,7 +33,7 @@ def gate_defs() -> PSet[GateDef]:
                                        ("Rz", {"theta"}, 1), ("S", set(), 1),
                                        ("SWAP", set(), 2), ("T", set(), 1),
                                        ("X", set(), 1), ("Y", set(), 1), ("Z", set(), 1), 
-                                       ("R1", {"theta"}, 1), ("CZ", {}, 2)) # type: ignore
+                                       ("R1", {"theta"}, 1), ("CY", {}, 2), ("CZ", {}, 2)) # type: ignore
     return pset({simple_gate(t) for t in simple_gates})
 
 
