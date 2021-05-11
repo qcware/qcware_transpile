@@ -84,12 +84,15 @@ def native_is_translatable(c: quasar.Circuit):
 
 def translate(c: quasar.Circuit) -> str:
     """
-    Native-to-native translation
+    Native-to-native translation.
     """
     if not native_is_translatable(c):
         raise TranslationException(audit(c))
     try:
         return thread_first(c, quasar_dialect.native_to_ir,
+                            # reverse the bit order in the ir quasar circuit
+                            # since quasar uses big-endian representation and
+                            # qsharp uses little-endian representation
                             reverse_circuit,
                             lambda x: simple_translate(translation_set(), x),
                             qsharp_dialect.ir_to_native)

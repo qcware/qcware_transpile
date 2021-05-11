@@ -168,6 +168,11 @@ def circuit_bit_targets(c: Circuit) -> PVector[int]:
 
 
 def reverse_circuit(c: Circuit) -> Circuit:
+    """ 
+    Reverse the bit order in the given circuit for the
+    purpose of converting between little-endian and 
+    big-endian representation.
+    """
     qubits = sorted(c.qubits)
     new_instructions = []
     for instruction in c.instructions:
