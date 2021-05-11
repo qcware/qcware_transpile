@@ -45,13 +45,10 @@ def circuits(draw, min_qubits, max_qubits, min_length, max_length):
 
         use qs = Qubit[{{num_qubits}}];
 
-        Message("Initial state |000>:");
-
         {% for gate in circuit_gates %} 
         {{gate}}; 
         {% endfor %}
-
-        Message("After:");
+        
         Diagnostics.DumpMachine("{{ output_file }}");
 
         ResetAll(qs);

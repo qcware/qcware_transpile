@@ -64,13 +64,10 @@ def ir_to_native(c: Circuit) -> str:
 
         use qs = Qubit[{{num_qubits}}];
 
-        Message("Initial state |000>:");
-
         {% for operation in operations %} 
         {{operation}}; 
         {% endfor %}
 
-        Message("After:");
         Diagnostics.DumpMachine("{{ output_file }}");
 
         ResetAll(qs);
