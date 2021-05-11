@@ -1,4 +1,4 @@
-from qcware_transpile.matching import (TranslationSet,
+from qcware_transpile.matching import (TranslationRule, TranslationSet,
                                        trivial_rules,
                                        untranslatable_instructions,
                                        simple_translate)
@@ -24,13 +24,36 @@ def translation_set():
                      ('CCX', 'CCNOT'), ('u1', 'R1'), ('SWAP', 'SWAP'),
                      ('Rx', 'Rx', double_angle),
                      ('Ry', 'Ry', double_angle),
-                     ('Rz', 'Rz', double_angle)}
+                     ('Rz', 'Rz', double_angle),
+                     ('CZ', 'CZ')}
 
     quasar_d = quasar_dialect.dialect()
     qsharp_d = qsharp_dialect.dialect()
+    other_rules = {
+        TranslationRule(
+            pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]), 
+            replacement=Circuit.from_tuples(
+                qsharp_d,
+                [
+                    ('H', {}, [0]),
+                    ('H', {}, [1]),
+                    ('CZ', {}, [0, 1]),
+                    # Note!  We don't double_angle there because the angle
+                    # to give to ry is actually theta/2
+                    ('Ry', {
+                        'theta': lambda pm: pm[(0, 'theta')]
+                    }, [0]),
+                    ('Ry', {
+                        'theta': lambda pm: -pm[(0, 'theta')]
+                    }, [1]),
+                    ('CZ', {}, [0, 1]),
+                    ('H', {}, [0]),
+                    ('H', {}, [1])
+                ]))
+    }
 
     rules = pset().union(trivial_rules(quasar_d, qsharp_d,
-                                       trivial_gates))
+                                       trivial_gates)).union(other_rules)
     return TranslationSet(from_dialect=quasar_d,
                           to_dialect=qsharp_d,
                           rules=rules)
