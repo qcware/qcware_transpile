@@ -40,15 +40,20 @@ def gate_defs() -> PSet[GateDef]:
 def dialect() -> Dialect:
     return Dialect(name=__dialect_name__, gate_defs=gate_defs()) # type: ignore
 
+
+def qsharp_operation_from_instruction(i: Instruction) -> str:
+    qubit_str = ", ".join("qs[%d]" % (q) for q in i.bit_bindings)
+    operation = i.gate_def.name + "(" + qubit_str + ")"
+    if i.parameter_bindings:
+        param_str = ", ".join("%s" % (v) for k, v in i.parameter_bindings.items())
+        operation = i.gate_def.name + "(" + param_str + ", " + qubit_str + ")"
+    return operation
+
+
 def ir_to_native(c: Circuit) -> str:
     operations = []
     for instruction in c.instructions:
-        qubit_str = ", ".join("qs[%d]" % (q) for q in instruction.bit_bindings)
-        operation = instruction.gate_def.name + "(" + qubit_str + ")"
-        if instruction.parameter_bindings:
-            param_str = ", ".join("%s" % (v) for k, v in instruction.parameter_bindings.items())
-            operation = instruction.gate_def.name + "(" + param_str + ", " + qubit_str + ")"
-        operations.append(operation)
+        operations.append(qsharp_operation_from_instruction(instruction))
 
     result = Template("""
     open Microsoft.Quantum.Canon;
