@@ -32,6 +32,9 @@ def test_translate_quasar_to_qsharp(quasar_circuit):
     note(str(quasar_circuit))
     quasar_transpilation_circuit = quasar_dialect.native_to_ir(quasar_circuit)
     note(str(quasar_transpilation_circuit))
+    # reverse the bit order in the ir quasar circuit
+    # since quasar uses big-endian representation and
+    # qsharp uses little-endian representation
     reversed_quasar_transpilation_circuit = reverse_circuit(quasar_transpilation_circuit)
     note(str(reversed_quasar_transpilation_circuit))
     qsharp_transpiled_circuit = simple_translate(ts,

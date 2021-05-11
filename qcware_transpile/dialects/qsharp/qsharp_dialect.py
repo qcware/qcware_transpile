@@ -33,7 +33,7 @@ def gate_defs() -> PSet[GateDef]:
                                        ("Rz", {"theta"}, 1), ("S", set(), 1),
                                        ("SWAP", set(), 2), ("T", set(), 1),
                                        ("X", set(), 1), ("Y", set(), 1), ("Z", set(), 1), 
-                                       ("R1", {"theta"}, 1)) # type: ignore
+                                       ("R1", {"theta"}, 1), ("CY", {}, 2), ("CZ", {}, 2)) # type: ignore
     return pset({simple_gate(t) for t in simple_gates})
 
 
@@ -51,6 +51,7 @@ def ir_to_native(c: Circuit) -> str:
         operations.append(operation)
 
     result = Template("""
+    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics as Diagnostics;
 
@@ -71,7 +72,3 @@ def ir_to_native(c: Circuit) -> str:
     }
     """)
     return result.render(num_qubits=max(c.qubits)+1, operations=operations, output_file="{{ output_file }}")
-
-
-bellpair = Circuit.from_tuples(dialect(),
-                               (("H", {}, [0]), ("CNOT", {}, [0, 1])))
