@@ -5,7 +5,6 @@ from qcware_transpile.dialects import qsharp as qsharp_dialect, quasar as quasar
 from qcware_transpile.circuits import reverse_circuit
 from ...strategies.quasar import gates, circuits
 from ...strategies.qsharp import run_generated_circuit
-from qsharp import compile
 import quasar
 import numpy
 
