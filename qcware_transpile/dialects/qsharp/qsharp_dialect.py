@@ -58,22 +58,31 @@ def ir_to_native(c: Circuit) -> str:
     result = Template("""
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Diagnostics as Diagnostics;
 
-    operation TestCircuit(): Unit {
-
-        use qs = Qubit[{{num_qubits}}];
-
-        Message("Initial state |000>:");
+    operation PrepareState(qs: Qubit[]): Unit {
 
         {% for operation in operations %} 
         {{operation}}; 
         {% endfor %}
 
-        Message("After:");
-        Diagnostics.DumpMachine("{{ output_file }}");
+    }
 
+    operation DumpToFile(): Unit {
+
+        use qs = Qubit[{{num_qubits}}];
+        PrepareState(qs);
+        Diagnostics.DumpMachine("{{ output_file }}");
         ResetAll(qs);
+    }
+
+    operation Measure(): Result[] {
+
+        use qs = Qubit[{{num_qubits}}];
+        PrepareState(qs);
+        return MultiM(qs);
+
     }
     """)
     return result.render(num_qubits=max(c.qubits)+1, operations=operations, output_file="{{ output_file }}")

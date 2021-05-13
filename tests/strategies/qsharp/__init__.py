@@ -38,23 +38,33 @@ def circuits(draw, min_qubits, max_qubits, min_length, max_length):
     circuit_gates = draw(
         lists(gates(num_qubits), min_size=length, max_size=length))
     result = Template("""
+    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Diagnostics as Diagnostics;
 
-    operation TestCircuit(): Unit {
+    operation PrepareState(qs: Qubit[]): Unit {
 
-        use qs = Qubit[{{num_qubits}}];
-
-        Message("Initial state |000>:");
-
-        {% for gate in circuit_gates %} 
-        {{gate}}; 
+        {% for operation in operations %} 
+        {{operation}}; 
         {% endfor %}
 
-        Message("After:");
-        Diagnostics.DumpMachine("{{ output_file }}");
+    }
 
+    operation DumpToFile(): Unit {
+
+        use qs = Qubit[{{num_qubits}}];
+        PrepareState(qs);
+        Diagnostics.DumpMachine("{{ output_file }}");
         ResetAll(qs);
+    }
+
+    operation Measure(): Result[] {
+
+        use qs = Qubit[{{num_qubits}}];
+        PrepareState(qs);
+        return MultiM(qs);
+        
     }
     """)
     return result.render(num_qubits=num_qubits, circuit_gates=circuit_gates, output_file="{{ output_file }}")
@@ -66,10 +76,11 @@ def parse_dump_machine(lines):
     values = [complex(entry[1], entry[2]) for entry in entries]
     return numpy.array(values)
 
+
 def run_generated_circuit(qc_nooutput):
     with tempfile.NamedTemporaryFile(mode="w+") as f:
         qc = Template(qc_nooutput).render(output_file=f.name)
-        compile(qc).simulate()
+        compile(qc)[1].simulate()
         lines = f.readlines()
         result = parse_dump_machine(lines)
     return result
