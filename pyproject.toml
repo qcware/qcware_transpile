@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qcware_transpile"
-version = "0.1.1-alpha.10"
+version = "0.1.1-alpha.11"
 description = "A quantum circuit transpilation framework"
 authors = ["Vic Putz <vic.putz@qcware.com>"]
 include = ["qcware_transpile/py.typed"]
