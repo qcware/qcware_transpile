@@ -76,8 +76,7 @@ def circuits(draw, min_qubits, max_qubits, min_length, max_length):
     )
     return result.render(
         num_qubits=num_qubits,
-        circuit_gates=circuit_gates,
-        output_file="{{ output_file }}",
+        circuit_gates=circuit_gates
     )
 
 
@@ -88,14 +87,10 @@ def parse_dump_machine(lines):
     return numpy.array(values)
 
 
-def run_generated_circuit(qc_nooutput):
+def run_generated_circuit(qc):
     with tempfile.NamedTemporaryFile(mode="w+") as f:
-        qc = Template(qc_nooutput).render(output_file=f.name)
-        compile(qc)[1].simulate()
+        compile(qc)[1].simulate(filename=f.name)
         lines = f.readlines()
         result = parse_dump_machine(lines)
     return result
 
-
-ex = circuits(2, 3, 2, 3).example()
-run_generated_circuit(ex)

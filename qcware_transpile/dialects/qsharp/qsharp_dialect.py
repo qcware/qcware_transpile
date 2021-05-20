@@ -98,6 +98,5 @@ def ir_to_native(c: Circuit) -> str:
     )
     return result.render(
         num_qubits=max(c.qubits) + 1,
-        operations=operations,
-        output_file="{{ output_file }}",
+        operations=operations
     )
