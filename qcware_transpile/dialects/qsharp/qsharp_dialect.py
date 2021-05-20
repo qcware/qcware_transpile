@@ -69,11 +69,11 @@ def ir_to_native(c: Circuit) -> str:
 
     }
 
-    operation DumpToFile(): Unit {
+    operation DumpToFile(filename: String): Unit {
 
         use qs = Qubit[{{num_qubits}}];
         PrepareState(qs);
-        Diagnostics.DumpMachine("{{ output_file }}");
+        Diagnostics.DumpMachine(filename);
         ResetAll(qs);
     }
 

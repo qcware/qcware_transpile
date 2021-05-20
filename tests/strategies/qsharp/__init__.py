@@ -51,11 +51,11 @@ def circuits(draw, min_qubits, max_qubits, min_length, max_length):
 
     }
 
-    operation DumpToFile(): Unit {
+    operation DumpToFile(filename: String): Unit {
 
         use qs = Qubit[{{num_qubits}}];
         PrepareState(qs);
-        Diagnostics.DumpMachine("{{ output_file }}");
+        Diagnostics.DumpMachine(filename);
         ResetAll(qs);
     }
 

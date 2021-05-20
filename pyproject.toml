@@ -21,7 +21,7 @@ parse = "^1.19.0"
 [tool.poetry.dev-dependencies]
 hypothesis = "^6.9.1"
 pytest = "^6.1.2"
-python-language-server = {extras = ["all"], version = "^0.36.1"}
+python-language-server = {extras = ["pycodestyle","pydocstyle","pyflakes","rope"], version = "^0.36.1"}
 mypy = "^0.790"
 watchdog = {extras = ["watchmedo"], version = "^1.0.1"}
 invoke = "^1.4.1"
@@ -31,8 +31,8 @@ sphinx = "^3.4.3"
 sphinx-rtd-theme = "^0.5.1"
 qiskit = "^0.23.5"
 snakeviz = "^2.1.0"
-pydantic = "1.7.3"
 pipdeptree = "^2.0.0"
+pyls-black = "^0.4.6"
 
 [tool.poetry.extras]
 qcware-quasar = ["qcware-quasar"]
