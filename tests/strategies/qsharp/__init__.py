@@ -76,7 +76,7 @@ def circuits(draw, min_qubits, max_qubits, min_length, max_length):
     )
     return result.render(
         num_qubits=num_qubits,
-        circuit_gates=circuit_gates
+        operations=circuit_gates
     )
 
 
