@@ -1,6 +1,9 @@
 import braket.devices
 from hypothesis import given, note, assume, settings, reproduce_failure
-from qcware_transpile.translations.quasar.to_braket import translation_set, native_is_translatable 
+from qcware_transpile.translations.quasar.to_braket import (
+    translation_set,
+    native_is_translatable,
+)
 from qcware_transpile.matching import translated_gates, simple_translate
 from qcware_transpile.dialects import braket as braket_dialect, quasar as quasar_dialect
 from ...strategies.quasar import gates, circuits
@@ -10,8 +13,7 @@ import numpy
 
 ts = translation_set()
 translatable_gatenames = [x.name for x in translated_gates(translation_set())]
-translatable_circuits = circuits(1, 3, 1, 4,
-                                 gates(gate_list=translatable_gatenames))
+translatable_circuits = circuits(1, 3, 1, 4, gates(gate_list=translatable_gatenames))
 
 
 def quasar_statevector(circuit: quasar.Circuit):
@@ -37,15 +39,15 @@ def test_translate_quasar_to_braket(quasar_circuit):
     note(str(quasar_circuit))
     quasar_transpilation_circuit = quasar_dialect.native_to_ir(quasar_circuit)
     note(str(quasar_transpilation_circuit))
-    braket_transpiled_circuit = simple_translate(ts,
-                                                 quasar_transpilation_circuit)
+    braket_transpiled_circuit = simple_translate(ts, quasar_transpilation_circuit)
     note(str(braket_transpiled_circuit))
-    braket_native_circuit = braket_dialect.ir_to_native(
-        braket_transpiled_circuit)
+    braket_native_circuit = braket_dialect.ir_to_native(braket_transpiled_circuit)
     note(str(braket_native_circuit))
-    modified_braket_native_circuit = braket_dialect.occupy_empty_qubits(braket_native_circuit)
+    modified_braket_native_circuit = braket_dialect.occupy_empty_qubits(
+        braket_native_circuit
+    )
     note(str(modified_braket_native_circuit))
     sv_quasar = quasar_statevector(quasar_circuit)
     sv_braket = braket_statevector(modified_braket_native_circuit)
     # this can fail with the default atol
-    assert (numpy.allclose(sv_quasar, sv_braket))
+    assert numpy.allclose(sv_quasar, sv_braket)

@@ -17,10 +17,9 @@ Num_parameters = [1] * len(Circuit_widths)
 Parameters = [list(np.random.random(2 * x) * np.pi) for x in Num_parameters]
 
 
-def create_qiskit_circuit(num_nodes: int,
-                          params: List[float],
-                          edge_prob=0.8,
-                          weight_range=10) -> qiskit.QuantumCircuit:
+def create_qiskit_circuit(
+    num_nodes: int, params: List[float], edge_prob=0.8, weight_range=10
+) -> qiskit.QuantumCircuit:
     # print(locals())
     np.random.seed(123)
     w = random_graph(num_nodes, edge_prob=edge_prob, weight_range=weight_range)
@@ -28,10 +27,12 @@ def create_qiskit_circuit(num_nodes: int,
     qaoa = QAOA(qubit_op, p=int(len(params) / 2))
     return qaoa.var_form.construct_circuit(params)
 
+
 circuit_width = 7
-qiskit_circuit = create_qiskit_circuit(Circuit_widths[circuit_width],
-                                       Parameters[circuit_width])
+qiskit_circuit = create_qiskit_circuit(
+    Circuit_widths[circuit_width], Parameters[circuit_width]
+)
 print(f"{qiskit_circuit.num_qubits} qubits")
 # translate once to load any missing imports
 quasar_circuit = translate(qiskit_circuit)
-cProfile.run('quasar_circuit = translate(qiskit_circuit)', 'test.prof')
+cProfile.run("quasar_circuit = translate(qiskit_circuit)", "test.prof")

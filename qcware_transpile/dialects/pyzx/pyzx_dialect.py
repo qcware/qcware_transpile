@@ -24,9 +24,12 @@ def pyzx_gatethings() -> PSet[Any]:
     numbers of qubits.
     """
     possible_things = [
-        x for x in pyzx.circuit.gates.__dict__.values()
-        if isclass(x) and issubclass(x, pyzx.circuit.Gate) and x !=
-        pyzx.circuit.Gate and x.__name__ not in _do_not_include_instructions
+        x
+        for x in pyzx.circuit.gates.__dict__.values()
+        if isclass(x)
+        and issubclass(x, pyzx.circuit.Gate)
+        and x != pyzx.circuit.Gate
+        and x.__name__ not in _do_not_include_instructions
     ]
     return pset(possible_things)
 
@@ -34,7 +37,8 @@ def pyzx_gatethings() -> PSet[Any]:
 def parameter_names_from_gatething(thing: pyzx.circuit.Gate) -> PSet[str]:
     sig = signature(thing.__init__)
     result = set(sig.parameters.keys()).difference(
-        {'self', 'target', 'control', 'ctrl1', 'ctrl2', 'label'})
+        {"self", "target", "control", "ctrl1", "ctrl2", "label"}
+    )
     return pset(result)
 
 
@@ -63,7 +67,8 @@ def gatedef_from_gatething(thing) -> GateDef:
     return GateDef(
         name=thing.__name__,
         parameter_names=parameter_names_from_gatething(thing),  # type: ignore
-        qubit_ids=number_of_qubits_from_gatething(thing))
+        qubit_ids=number_of_qubits_from_gatething(thing),
+    )
 
 
 # some gates are problematic -- in particular Qiskit's "gates" which
@@ -106,8 +111,7 @@ def dialect() -> Dialect:
     """
     The pyzx dialect
     """
-    return Dialect(name=__dialect_name__,
-                   gate_defs=gate_defs())  # type: ignore
+    return Dialect(name=__dialect_name__, gate_defs=gate_defs())  # type: ignore
 
 
 @lru_cache(1)
@@ -151,7 +155,8 @@ def qubit_bindings(g: pyzx.circuit.Gate):
 
 
 def native_instructions(
-        pc: pyzx.circuit.Circuit) -> Generator[pyzx.circuit.Gate, None, None]:
+    pc: pyzx.circuit.Circuit,
+) -> Generator[pyzx.circuit.Gate, None, None]:
     for g in pc.gates:
         yield g
 
@@ -161,7 +166,8 @@ def ir_instruction_from_native(g: pyzx.circuit.Gate) -> Instruction:
     return Instruction(
         gate_def=gatedef_from_gatething(g.__class__),
         parameter_bindings=parameter_bindings_from_gate(g),  # type: ignore
-        bit_bindings=qubit_bindings(g))
+        bit_bindings=qubit_bindings(g),
+    )
 
 
 def native_to_ir(pc: pyzx.circuit.Circuit) -> Circuit:
@@ -169,21 +175,23 @@ def native_to_ir(pc: pyzx.circuit.Circuit) -> Circuit:
     Return a transpile-style Circuit object from a qiskit Circuit object
     """
     instructions = list(
-        (ir_instruction_from_native(x) for x in native_instructions(pc)))
+        (ir_instruction_from_native(x) for x in native_instructions(pc))
+    )
     qubits = list(range(pc.qubits))
     return Circuit(
         dialect_name=__dialect_name__,
         instructions=instructions,  # type: ignore
-        qubits=qubits)  # type: ignore
+        qubits=qubits,
+    )  # type: ignore
 
 
 def pyzx_qubit_bindings(qubits: Sequence[int]):
     if len(qubits) == 3:
-        result = {'ctrl1': qubits[0], 'ctrl2': qubits[1], 'target': qubits[2]}
+        result = {"ctrl1": qubits[0], "ctrl2": qubits[1], "target": qubits[2]}
     elif len(qubits) == 2:
-        result = {'control': qubits[0], 'target': qubits[1]}
+        result = {"control": qubits[0], "target": qubits[1]}
     elif len(qubits) == 1:
-        result = {'target': qubits[0]}
+        result = {"target": qubits[0]}
     else:
         raise ValueError(f"invalid number of qubits: {qubits}")
     return result
@@ -237,5 +245,5 @@ def audit(c: pyzx.Circuit) -> Dict:
             invalid_gate_names.add(g.__class__.__name__)
     result = {}
     if len(invalid_gate_names) > 0:
-        result['invalid_gate_names'] = invalid_gate_names
+        result["invalid_gate_names"] = invalid_gate_names
     return result

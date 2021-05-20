@@ -1,9 +1,7 @@
 import math
-from hypothesis.strategies import (lists, integers, composite, sampled_from,
-                                   floats)
+from hypothesis.strategies import lists, integers, composite, sampled_from, floats
 import qiskit  # type: ignore
-from qcware_transpile.dialects.qiskit.qiskit_dialect import (dialect,
-                                                             name_to_class)
+from qcware_transpile.dialects.qiskit.qiskit_dialect import dialect, name_to_class
 
 
 @composite
@@ -39,12 +37,7 @@ def qreg_sizes(draw, num_qubits):
 
 
 @composite
-def circuits(draw,
-             min_qubits,
-             max_qubits,
-             min_length,
-             max_length,
-             gates=gates()):
+def circuits(draw, min_qubits, max_qubits, min_length, max_length, gates=gates()):
     length = draw(integers(min_value=min_length, max_value=max_length))
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
     num_clbits = draw(integers(min_value=min_qubits, max_value=max_qubits))
@@ -52,7 +45,9 @@ def circuits(draw,
 
     circuit_gates = draw(
         lists(gates, min_size=length, max_size=length).filter(
-            lambda x: all([y.num_qubits <= num_qubits for y in x])))
+            lambda x: all([y.num_qubits <= num_qubits for y in x])
+        )
+    )
 
     if num_clbits > 0:
         cr = qiskit.ClassicalRegister(num_clbits)
@@ -61,12 +56,15 @@ def circuits(draw,
         result = qiskit.QuantumCircuit(*qregs)
     for gate in circuit_gates:
         qubits = draw(
-            lists(integers(min_value=0, max_value=num_qubits - 1),
-                  min_size=gate.num_qubits,
-                  max_size=gate.num_qubits,
-                  unique=True))
+            lists(
+                integers(min_value=0, max_value=num_qubits - 1),
+                min_size=gate.num_qubits,
+                max_size=gate.num_qubits,
+                unique=True,
+            )
+        )
         # manually muck about with measure
-        if gate.name == 'measure':
+        if gate.name == "measure":
             this_clbit = draw(integers(min_value=0, max_value=num_clbits - 1))
             result.append(gate, tuple(qubits), tuple([this_clbit]))
         else:

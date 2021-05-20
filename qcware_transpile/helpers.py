@@ -7,9 +7,9 @@ from pyrsistent import pmap, pset
 from typing import TypeVar, Dict, Iterable, Callable
 from pyrsistent.typing import PMap, PSet
 
-A = TypeVar('A')
-B = TypeVar('B')
-T = TypeVar('T')
+A = TypeVar("A")
+B = TypeVar("B")
+T = TypeVar("T")
 
 
 @require(lambda s1, s2: len(s1) == len(s2))
@@ -20,7 +20,7 @@ def map_seq_to_seq(s1: Sequence[A], s2: Sequence[B]) -> PMap[A, PSet[B]]:
     such that domain(result) == set(s1); return the mapping
     as a pmap
 
-    If s1 has multiple entries with equal values, the 
+    If s1 has multiple entries with equal values, the
     results for f(x) would be {y,z...}; in other words,
     mapping [1,2,1] onto [3,4,5] would result in
     { 1: {3,5}, 2: {4} }
@@ -66,7 +66,7 @@ def prepend_index_to_domain(index: int, f: Mapping):
 def reverse_map(f: Mapping[A, B]) -> PMap[B, PSet[A]]:
     """
     Reverses a mapping such that the values of f
-    are mapped to the sets of keys in f corresponding 
+    are mapped to the sets of keys in f corresponding
     to that value
     """
     result: Dict[B, PSet[A]] = {}

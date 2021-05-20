@@ -13,7 +13,7 @@ __dialect_name__ = "braket"
 
 # don't include the AngledGate and Gate base classes in
 # the set of all things in braket which represent a gate.
-_do_not_include_instructions = pset({'AngledGate', 'Gate'})
+_do_not_include_instructions = pset({"AngledGate", "Gate"})
 
 
 @lru_cache(1)
@@ -22,17 +22,20 @@ def braket_gatethings() -> PSet[Any]:
     The set of all things in braket which represent a gate.
     """
     possible_things = dir(braket.circuits.gates)
-    return pset([
-        getattr(braket.circuits.gates, x) for x in possible_things
-        if isclass(getattr(braket.circuits.gates, x))
-        and issubclass(getattr(braket.circuits.gates, x), braket.circuits.Gate)
-        and x not in _do_not_include_instructions
-    ])
+    return pset(
+        [
+            getattr(braket.circuits.gates, x)
+            for x in possible_things
+            if isclass(getattr(braket.circuits.gates, x))
+            and issubclass(getattr(braket.circuits.gates, x), braket.circuits.Gate)
+            and x not in _do_not_include_instructions
+        ]
+    )
 
 
 def parameter_names_from_gatething(thing: braket.circuits.Gate) -> PSet[str]:
     sig = signature(thing.__init__)
-    result = set(sig.parameters.keys()).difference({'self', 'display_name'})
+    result = set(sig.parameters.keys()).difference({"self", "display_name"})
     return pset(result)
 
 
@@ -53,13 +56,14 @@ def gatedef_from_gatething(thing: braket.circuits.Gate) -> GateDef:
     return GateDef(
         name=thing.__name__,
         parameter_names=parameter_names_from_gatething(thing),  # type: ignore
-        qubit_ids=number_of_qubits_from_gatething(thing))
+        qubit_ids=number_of_qubits_from_gatething(thing),
+    )
 
 
 # the Unitary gate is problematic since it allows for
 # the construction of a gate with an arbitrary matrix.
 # for now we will disable the Unitary gate.
-Problematic_gatenames = pset({'Unitary'})
+Problematic_gatenames = pset({"Unitary"})
 
 
 @lru_cache(1)
@@ -94,8 +98,7 @@ def dialect() -> Dialect:
     """
     The braket dialect
     """
-    return Dialect(name=__dialect_name__,
-                   gate_defs=gate_defs())  # type: ignore
+    return Dialect(name=__dialect_name__, gate_defs=gate_defs())  # type: ignore
 
 
 @lru_cache(1)
@@ -111,8 +114,7 @@ def parameter_bindings_from_gate(gate: braket.circuits.Gate) -> PMap[str, Any]:
     return pmap(result)
 
 
-def occupy_empty_qubits(
-        qc: braket.circuits.Circuit) -> braket.circuits.Circuit:
+def occupy_empty_qubits(qc: braket.circuits.Circuit) -> braket.circuits.Circuit:
     # insert identity gate on empty qubits because
     # circuit execution on braket backends requires
     # contiguous qubit indices
@@ -124,14 +126,16 @@ def occupy_empty_qubits(
         empty_qubits = pset(range(max(qc.qubits) + 1)).difference(qubits)
         for q in empty_qubits:
             result.add_instruction(
-                braket.circuits.Instruction(braket.circuits.Gate.I(), q))
+                braket.circuits.Instruction(braket.circuits.Gate.I(), q)
+            )
     return result
 
 
 def native_instructions(
-    qc: braket.circuits.Circuit
-) -> Generator[Tuple[braket.circuits.instruction.InstructionOperator,
-                     List[int]], None, None]:
+    qc: braket.circuits.Circuit,
+) -> Generator[
+    Tuple[braket.circuits.instruction.InstructionOperator, List[int]], None, None
+]:
     for instruction in qc.instructions:
         if isinstance(instruction.operator, braket.circuits.Gate):
             qubits = [int(qubit) for qubit in instruction.target]
@@ -140,23 +144,25 @@ def native_instructions(
 
 @require(lambda gate: gate.name in valid_gatenames())
 def ir_instruction_from_native(
-        gate: braket.circuits.instruction.InstructionOperator,
-        qubits: List[int]) -> Instruction:
+    gate: braket.circuits.instruction.InstructionOperator, qubits: List[int]
+) -> Instruction:
     return Instruction(
         gate_def=gatedef_from_gatething(gate.__class__),
         parameter_bindings=parameter_bindings_from_gate(gate),  # type: ignore
-        bit_bindings=qubits)
+        bit_bindings=qubits,
+    )
 
 
 def native_to_ir(qc: braket.circuits.Circuit) -> Circuit:
     instructions = list(
-        ir_instruction_from_native(x[0], x[1])
-        for x in native_instructions(qc))
+        ir_instruction_from_native(x[0], x[1]) for x in native_instructions(qc)
+    )
     qubits = list(range(qc.qubit_count))
     return Circuit(
         dialect_name=__dialect_name__,
         instructions=instructions,  # type: ignore
-        qubits=qubits)  # type: ignore
+        qubits=qubits,
+    )  # type: ignore
 
 
 def braket_gate_from_instruction(i: Instruction):
@@ -174,8 +180,9 @@ def ir_to_native(c: Circuit) -> braket.circuits.Circuit:
     return result
 
 
-def native_circuits_are_equivalent(c1: braket.circuits.Circuit,
-                                   c2: braket.circuits.Circuit) -> bool:
+def native_circuits_are_equivalent(
+    c1: braket.circuits.Circuit, c2: braket.circuits.Circuit
+) -> bool:
     return c1.__eq__(c2)
 
 
@@ -186,5 +193,5 @@ def audit(c: braket.circuits.Circuit) -> Dict:
             invalid_gate_names.add(g.name)
     result = {}
     if len(invalid_gate_names) > 0:
-        result['invalid_gate_names'] = invalid_gate_names
+        result["invalid_gate_names"] = invalid_gate_names
     return result

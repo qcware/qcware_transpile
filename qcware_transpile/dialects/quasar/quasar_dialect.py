@@ -3,6 +3,7 @@ from quasar.circuit import Circuit as QuasarCircuit  # type: ignore
 from pyrsistent import pset
 from pyrsistent.typing import PSet
 from typing import Callable, Any, Tuple, Generator, Dict
+
 # not using relative imports here for the moment to simplify emacs
 # send-to-buffer issues; it should arguably be set back to relative
 # imports at some point
@@ -23,8 +24,10 @@ def is_builtin(thing) -> bool:
     out things in the Gate namespace which represent a Gate or the
     function used to create a gate.
     """
-    return type(thing).__name__ in dir(__builtins__) or type(
-        thing).__name__ == "builtin_function_or_method"
+    return (
+        type(thing).__name__ in dir(__builtins__)
+        or type(thing).__name__ == "builtin_function_or_method"
+    )
 
 
 def represents_gate(f) -> bool:
@@ -45,9 +48,9 @@ def represents_gate(f) -> bool:
     # it raises "ValueError for item <class 'type'>
     except ValueError:
         return False
-    has_all_defaults = all([
-        param.default is not param.empty for param in sig.parameters.values()
-    ])
+    has_all_defaults = all(
+        [param.default is not param.empty for param in sig.parameters.values()]
+    )
     if not has_all_defaults:
         return False
     f_result = f()
@@ -67,9 +70,7 @@ def gatedef_from_gate(name: str, g: Gate) -> GateDef:
     name = name
     parameter_names = {k for k in g.parameters.keys()}
     num_qubits = g.nqubit
-    return GateDef(name=name,
-                   parameter_names=parameter_names,
-                   qubit_ids=num_qubits)
+    return GateDef(name=name, parameter_names=parameter_names, qubit_ids=num_qubits)
 
 
 def gatedef_from_gatefun(name: str, g: Callable) -> GateDef:
@@ -100,7 +101,7 @@ def gate_name_property(thing: Any) -> str:
         return thing.name
     elif callable(thing):
         g = thing()
-        assert (isinstance(g, Gate))
+        assert isinstance(g, Gate)
         return g.name
     else:
         assert False
@@ -117,9 +118,7 @@ def quasar_gatenames_full() -> PSet[str]:
     """
     The names of verything in the Gate namespace
     """
-    result = pset(
-        {name
-         for name in dir(Gate) if represents_gate(getattr(Gate, name))})
+    result = pset({name for name in dir(Gate) if represents_gate(getattr(Gate, name))})
     return result
 
 
@@ -128,11 +127,13 @@ def quasar_gatethings_full() -> PSet:
     """
     All the things in the Gate namespace which represent a gate
     """
-    result = pset({
-        getattr(Gate, name)
-        for name in quasar_gatenames_full()
-        if represents_gate(getattr(Gate, name))
-    })
+    result = pset(
+        {
+            getattr(Gate, name)
+            for name in quasar_gatenames_full()
+            if represents_gate(getattr(Gate, name))
+        }
+    )
     return result
 
 
@@ -163,9 +164,10 @@ def name_property_to_namespace_translation_table():
 
 
 def native_instructions(
-        qc: QuasarCircuit) -> Generator[Tuple[Gate, Tuple[int]], None, None]:
+    qc: QuasarCircuit,
+) -> Generator[Tuple[Gate, Tuple[int]], None, None]:
     """
-    Iterates through the circuit yielding tuples of gate and 
+    Iterates through the circuit yielding tuples of gate and
     qubits.
     """
     for key, gate in qc.gates.items():
@@ -177,9 +179,11 @@ def ir_instruction_from_native(gate: Gate, qubits: Tuple[int]) -> Instruction:
     Direct conversion of one gate/qubits tuple into an IR "instruction"
     """
     ntt = name_property_to_namespace_translation_table()
-    return Instruction(gate_def=gatedef_from_gatething(ntt[gate.name], gate),
-                       bit_bindings=qubits,
-                       parameter_bindings=gate.parameters)
+    return Instruction(
+        gate_def=gatedef_from_gatething(ntt[gate.name], gate),
+        bit_bindings=qubits,
+        parameter_bindings=gate.parameters,
+    )
 
 
 def native_to_ir(qc: QuasarCircuit) -> Circuit:
@@ -187,10 +191,11 @@ def native_to_ir(qc: QuasarCircuit) -> Circuit:
     Return a transpile-style Circuit object from a quasar Circuit object
     """
     instructions = list(
-        ir_instruction_from_native(x[0], x[1])
-        for x in native_instructions(qc))
-    return Circuit.from_instructions(dialect_name=__dialect_name__,
-                                     instructions=instructions)  # type: ignore
+        ir_instruction_from_native(x[0], x[1]) for x in native_instructions(qc)
+    )
+    return Circuit.from_instructions(
+        dialect_name=__dialect_name__, instructions=instructions
+    )  # type: ignore
 
 
 def quasar_gate_from_instruction(i: Instruction) -> Gate:
@@ -219,15 +224,16 @@ def ir_to_native(c: Circuit, fill_unused_edge_qubits=False) -> QuasarCircuit:
         # find the unused edge qubits.  We can use quasar's min_qubit and max_qubit
         # combined with the list of qubits in the Circuit object.
         # The Circuit's qubits is a set
-        qubits_to_fill = { qb for qb in c.qubits if (qb < result.min_qubit) or (qb > result.max_qubit) }
+        qubits_to_fill = {
+            qb for qb in c.qubits if (qb < result.min_qubit) or (qb > result.max_qubit)
+        }
         # on each unused edge qubits, add an identity gate
         for qb in qubits_to_fill:
             result.I(qb)
-    return result 
+    return result
 
 
-def native_circuits_are_equivalent(c1: QuasarCircuit,
-                                   c2: QuasarCircuit) -> bool:
+def native_circuits_are_equivalent(c1: QuasarCircuit, c2: QuasarCircuit) -> bool:
     """
     Our own definition of whether two quasar circuits are equivalent;
     used to test

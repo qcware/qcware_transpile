@@ -8,13 +8,22 @@ from pyrsistent.typing import PSet, PMap
 from pyrsistent import pset, pmap, PMap as PMap_class
 from typing import Callable, Optional, Tuple, Union, Iterable
 from qcware_transpile.helpers import map_seq_to_seq_unique
-from qcware_transpile.instructions import Instruction, remapped_instruction, audit_instruction_for_executable
+from qcware_transpile.instructions import (
+    Instruction,
+    remapped_instruction,
+    audit_instruction_for_executable,
+)
 from qcware_transpile.gates import Dialect, GateDef
 from qcware_transpile.circuits import (
-    Circuit, circuit_bit_targets, circuit_is_valid_replacement,
-    circuit_is_valid_executable, circuit_pattern_matches_target,
-    circuit_parameter_map, circuit_conforms_to_dialect,
-    circuit_parameter_names)
+    Circuit,
+    circuit_bit_targets,
+    circuit_is_valid_replacement,
+    circuit_is_valid_executable,
+    circuit_pattern_matches_target,
+    circuit_parameter_map,
+    circuit_conforms_to_dialect,
+    circuit_parameter_names,
+)
 
 
 @attr.s(frozen=True)
@@ -24,6 +33,7 @@ class TranslationRule(object):
     must be a fully-bound circuit (all parameters for all instructions
     must be bound) with the same set of input bits as the pattern
     """
+
     pattern = attr.ib(type=Circuit)
     replacement = attr.ib(type=Circuit)
 
@@ -32,8 +42,7 @@ class TranslationRule(object):
         # replacement must address the same bits as pattern
         pattern_bits = circuit_bit_targets(self.pattern)
         replacement_bits = circuit_bit_targets(self.replacement)
-        if len(replacement_bits) > 0 and set(pattern_bits) != set(
-                replacement_bits):
+        if len(replacement_bits) > 0 and set(pattern_bits) != set(replacement_bits):
             raise ValueError(
                 f"pattern and replacement must target the same set of bits ({pattern_bits}!={replacement_bits})"
             )
@@ -44,9 +53,7 @@ class TranslationRule(object):
             )
         pattern_parameters = circuit_parameter_names(self.pattern)
         pm_replacement = circuit_parameter_map(self.replacement)
-        pattern_keys = [
-            x for x in pm_replacement.values() if isinstance(x, tuple)
-        ]
+        pattern_keys = [x for x in pm_replacement.values() if isinstance(x, tuple)]
         if not set(pattern_keys).issubset(pattern_parameters):
             raise ValueError(
                 "Some replacement values reference tuples not in the source pattern"
@@ -57,20 +64,26 @@ class TranslationRule(object):
 
 
 @require(lambda a, b: len(a.qubit_ids) == len(b.qubit_ids))
-@require(lambda a, b: len(a.parameter_names) == len(b.parameter_names) and len(
-    a.parameter_names) <= 1)
-@require(lambda dialect_a, a, dialect_b, b: a in dialect_a.gate_defs and b in
-         dialect_b.gate_defs)
-def trivial_rule(dialect_a: Dialect,
-                 a: GateDef,
-                 dialect_b: Dialect,
-                 b: GateDef,
-                 f: Optional[Callable] = None) -> TranslationRule:
+@require(
+    lambda a, b: len(a.parameter_names) == len(b.parameter_names)
+    and len(a.parameter_names) <= 1
+)
+@require(
+    lambda dialect_a, a, dialect_b, b: a in dialect_a.gate_defs
+    and b in dialect_b.gate_defs
+)
+def trivial_rule(
+    dialect_a: Dialect,
+    a: GateDef,
+    dialect_b: Dialect,
+    b: GateDef,
+    f: Optional[Callable] = None,
+) -> TranslationRule:
     """
     Create a trivial translation rule between two gate definitions,
-    optionally with a translation lambda for the single parameter.  
+    optionally with a translation lambda for the single parameter.
     Unlike the target translation function, which takes the single
-    parameter of a parameter map (which one would dereference for 
+    parameter of a parameter map (which one would dereference for
     actual arguments, ie "lambda pm: pm[(0,'theta')]*2") this takes
     a single value and returns a modified value, presuming that there
     single parameter shared by both gates is the same type
@@ -79,51 +92,63 @@ def trivial_rule(dialect_a: Dialect,
     up to one parameter.  Beyond that you'll have to be a bit more clever.
     """
     num_qubits = len(a.qubit_ids)
-    pattern_instruction = Instruction(gate_def=a,
-                                      bit_bindings=range(num_qubits),
-                                      parameter_bindings={})
+    pattern_instruction = Instruction(
+        gate_def=a, bit_bindings=range(num_qubits), parameter_bindings={}
+    )
     if len(a.parameter_names) == 1:
         a_parameter_name = list(a.parameter_names)[0]
         b_parameter_name = list(b.parameter_names)[0]
 
         b_parameter_target = (0, a_parameter_name)
-        b_parameter_value = b_parameter_target if f is None else lambda pm: f(
-            pm[b_parameter_target])
+        b_parameter_value = (
+            b_parameter_target if f is None else lambda pm: f(pm[b_parameter_target])
+        )
         parameter_bindings = {b_parameter_name: b_parameter_value}
     else:
         parameter_bindings = {}
     target_instruction = Instruction(
         gate_def=b,
         bit_bindings=range(num_qubits),
-        parameter_bindings=parameter_bindings)  # type: ignore
+        parameter_bindings=parameter_bindings,
+    )  # type: ignore
     return TranslationRule(
-        pattern=Circuit.from_instructions(dialect_a.name,
-                                          [pattern_instruction]),
-        replacement=Circuit.from_instructions(dialect_b.name,
-                                              [target_instruction]))
+        pattern=Circuit.from_instructions(dialect_a.name, [pattern_instruction]),
+        replacement=Circuit.from_instructions(dialect_b.name, [target_instruction]),
+    )
 
 
 def trivial_rules(
-    dialect_a: Dialect, dialect_b: Dialect,
-    name_tuples: Iterable[Union[Tuple[str, str], Tuple[str, str, Callable]]]
+    dialect_a: Dialect,
+    dialect_b: Dialect,
+    name_tuples: Iterable[Union[Tuple[str, str], Tuple[str, str, Callable]]],
 ) -> PSet[TranslationRule]:
     """
     Create a set of trivial rules without any parameter translation
     by pairs of gate names
     """
-    return pset({
-        trivial_rule(dialect_a, dialect_a.gate_named(t[0]), dialect_b,
-                     dialect_b.gate_named(t[1]),
-                     None if len(t) == 2 else t[2])  # type: ignore
-        for t in name_tuples
-    })
+    return pset(
+        {
+            trivial_rule(
+                dialect_a,
+                dialect_a.gate_named(t[0]),
+                dialect_b,
+                dialect_b.gate_named(t[1]),
+                None if len(t) == 2 else t[2],
+            )  # type: ignore
+            for t in name_tuples
+        }
+    )
 
 
-@require(lambda translation, target: circuit_pattern_matches_target(
-    translation.pattern, target))
+@require(
+    lambda translation, target: circuit_pattern_matches_target(
+        translation.pattern, target
+    )
+)
 @require(lambda target: circuit_is_valid_executable(target))
-def translation_replace_circuit(translation: TranslationRule,
-                                target: Circuit) -> Circuit:
+def translation_replace_circuit(
+    translation: TranslationRule, target: Circuit
+) -> Circuit:
     pattern_bits = list(circuit_bit_targets(translation.pattern))
     target_bits = list(circuit_bit_targets(target))
     # okay, at this point the pattern and target bits could have redundant pairs,
@@ -143,7 +168,8 @@ def translation_replace_circuit(translation: TranslationRule,
     # type "List[Instruction]"; expected "Iterable[T]"
     return Circuit.from_instructions(
         dialect_name=translation.replacement.dialect_name,
-        instructions=replacement_instructions)  # type: ignore
+        instructions=replacement_instructions,
+    )  # type: ignore
 
 
 @attr.s
@@ -151,28 +177,35 @@ class TranslationSet(object):
     """
     A TranslationSet is a translation between one Dialect and another.
     """
+
     from_dialect = attr.ib(type=Dialect)
     to_dialect = attr.ib(type=Dialect)
     rules = attr.ib(type=PSet[TranslationRule], converter=pset)
-    trivial_dispatch = attr.ib(type=PMap[str, TranslationRule],
-                               validator=attr.validators.optional(
-                                   attr.validators.instance_of(PMap_class)),
-                               default=None)
+    trivial_dispatch = attr.ib(
+        type=PMap[str, TranslationRule],
+        validator=attr.validators.optional(attr.validators.instance_of(PMap_class)),
+        default=None,
+    )
 
     def is_trivial(self) -> bool:
-        """Is this a trivial translation set (single-instruction patterns)?
-        """
+        """Is this a trivial translation set (single-instruction patterns)?"""
         return self.trivial_dispatch is not None
 
     @classmethod
-    @require(lambda from_dialect, rules: all(
-        (rule.pattern.dialect_name == from_dialect.name for rule in rules)))
-    @require(lambda to_dialect, rules: all(
-        (rule.replacement.dialect_name == to_dialect.name for rule in rules)))
-    @require(lambda rules: all(
-        (len(rule.pattern.instructions) == 1 for rule in rules)))
-    def from_trivial_rules(cls, from_dialect: Dialect, to_dialect: Dialect,
-                           rules: PSet[TranslationRule]):
+    @require(
+        lambda from_dialect, rules: all(
+            (rule.pattern.dialect_name == from_dialect.name for rule in rules)
+        )
+    )
+    @require(
+        lambda to_dialect, rules: all(
+            (rule.replacement.dialect_name == to_dialect.name for rule in rules)
+        )
+    )
+    @require(lambda rules: all((len(rule.pattern.instructions) == 1 for rule in rules)))
+    def from_trivial_rules(
+        cls, from_dialect: Dialect, to_dialect: Dialect, rules: PSet[TranslationRule]
+    ):
         """
         Honestly, most rules will be simple (one gate to a set of gates).  If
         this is the case, we can take a serious optimization and assume that
@@ -182,18 +215,20 @@ class TranslationSet(object):
         (for example, CX(0,0) shouldn't probably work) but for now we are
         ignoring those edge cases.
         """
-        return cls(from_dialect=from_dialect,
-                   to_dialect=to_dialect,
-                   rules=rules, # type: ignore
-                   trivial_dispatch=pmap({
-                       rule.pattern.instructions[0].gate_def.name: rule
-                       for rule in rules
-                   }))
+        return cls(
+            from_dialect=from_dialect,
+            to_dialect=to_dialect,
+            rules=rules,  # type: ignore
+            trivial_dispatch=pmap(
+                {rule.pattern.instructions[0].gate_def.name: rule for rule in rules}
+            ),
+        )
 
     def __str__(self):
         return "\n  ".join(
-            ["->".join([self.from_dialect.name, self.to_dialect.name])] +
-            [str(rule) for rule in self.rules])
+            ["->".join([self.from_dialect.name, self.to_dialect.name])]
+            + [str(rule) for rule in self.rules]
+        )
 
 
 def matching_rules(ts: TranslationSet, c: Circuit) -> PSet[TranslationRule]:
@@ -210,10 +245,9 @@ def matching_rules(ts: TranslationSet, c: Circuit) -> PSet[TranslationRule]:
             rule = ts.trivial_dispatch.get(gate_name, None)
             return pset({rule} if rule is not None else set())
     else:
-        return pset({
-            r
-            for r in ts.rules if circuit_pattern_matches_target(r.pattern, c)
-        })
+        return pset(
+            {r for r in ts.rules if circuit_pattern_matches_target(r.pattern, c)}
+        )
 
 
 def circuit_is_simply_translatable_by(c: Circuit, ts: TranslationSet) -> bool:
@@ -224,8 +258,7 @@ def circuit_is_simply_translatable_by(c: Circuit, ts: TranslationSet) -> bool:
     return len(untranslatable_instructions(c, ts)) == 0
 
 
-def untranslatable_instructions(c: Circuit,
-                                ts: TranslationSet) -> PSet[Instruction]:
+def untranslatable_instructions(c: Circuit, ts: TranslationSet) -> PSet[Instruction]:
     subcircuits = [
         Circuit.from_instructions(c.dialect_name, [i]) for i in c.instructions
     ]  # type: ignore
@@ -234,8 +267,7 @@ def untranslatable_instructions(c: Circuit,
 
 @require(lambda ts, target: target.dialect_name == ts.from_dialect.name)
 @require(lambda ts, target: len(matching_rules(ts, target)) > 0)
-def translationset_replace_circuit(ts: TranslationSet,
-                                   target: Circuit) -> Circuit:
+def translationset_replace_circuit(ts: TranslationSet, target: Circuit) -> Circuit:
     """
     Compute a replacement circuit by the given translation set
     """
@@ -246,8 +278,7 @@ def translationset_replace_circuit(ts: TranslationSet,
         instruction_audits = [
             audit_instruction_for_executable(i) for i in target.instructions
         ]
-        audit[
-            'nonexecutable_instructions'] = instruction_audits  # type: ignore
+        audit["nonexecutable_instructions"] = instruction_audits  # type: ignore
         raise TranslationException(audit=audit)
     result = translation_replace_circuit(rule, target)
     return result
@@ -267,12 +298,13 @@ def simple_translate(ts: TranslationSet, c: Circuit) -> Circuit:
         Circuit.from_instructions(c.dialect_name, [i]) for i in c.instructions
     ]  # type: ignore
     new_instructions = [
-        instruction for sub in subcircuits
+        instruction
+        for sub in subcircuits
         for instruction in translationset_replace_circuit(ts, sub).instructions
     ]
-    return Circuit.from_instructions(dialect_name=ts.to_dialect.name,
-                                     instructions=new_instructions,
-                                     qubits=c.qubits)  # type: ignore
+    return Circuit.from_instructions(
+        dialect_name=ts.to_dialect.name, instructions=new_instructions, qubits=c.qubits
+    )  # type: ignore
 
 
 def translated_gates(tset: TranslationSet) -> PSet[GateDef]:
@@ -282,9 +314,11 @@ def translated_gates(tset: TranslationSet) -> PSet[GateDef]:
     which are one instruction long and have no bound
     parameters!
     """
+
     def is_simple_pattern(x: Circuit):
-        return len(x.instructions) == 1 and len(
-            x.instructions[0].parameter_bindings) == 0
+        return (
+            len(x.instructions) == 1 and len(x.instructions[0].parameter_bindings) == 0
+        )
 
     return pset({x.pattern.instructions[0].gate_def for x in tset.rules})
 

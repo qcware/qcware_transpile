@@ -9,8 +9,7 @@ import numpy  # type: ignore
 
 ts = translation_set()
 translatable_gatenames = [x.name for x in translated_gates(translation_set())]
-translatable_circuits = circuits(1, 3, 1, 4,
-                                 gates(gate_list=translatable_gatenames))
+translatable_circuits = circuits(1, 3, 1, 4, gates(gate_list=translatable_gatenames))
 
 
 def quasar_statevector(circuit: quasar.Circuit):
@@ -20,8 +19,8 @@ def quasar_statevector(circuit: quasar.Circuit):
 
 
 def qiskit_statevector(circuit: qiskit.QuantumCircuit):
-    backend = qiskit.Aer.get_backend('statevector_simulator')
-    sv = qiskit.execute(circuit, backend).result().data()['statevector']
+    backend = qiskit.Aer.get_backend("statevector_simulator")
+    sv = qiskit.execute(circuit, backend).result().data()["statevector"]
     return sv
 
 
@@ -30,15 +29,12 @@ def qiskit_statevector(circuit: qiskit.QuantumCircuit):
 def test_translate_quasar_to_qiskit(quasar_circuit):
     assume(native_is_translatable(quasar_circuit))
     note(str(quasar_circuit))
-    quasar_transpilation_circuit = quasar_dialect.native_to_ir(
-        quasar_circuit)
+    quasar_transpilation_circuit = quasar_dialect.native_to_ir(quasar_circuit)
     note(str(quasar_transpilation_circuit))
-    qiskit_transpiled_circuit = simple_translate(ts,
-                                                 quasar_transpilation_circuit)
+    qiskit_transpiled_circuit = simple_translate(ts, quasar_transpilation_circuit)
     note(str(qiskit_transpiled_circuit))
-    qiskit_native_circuit = qiskit_dialect.ir_to_native(
-        qiskit_transpiled_circuit)
+    qiskit_native_circuit = qiskit_dialect.ir_to_native(qiskit_transpiled_circuit)
     note(qiskit_native_circuit.draw())
     sv_quasar = quasar_statevector(quasar_circuit)
     sv_qiskit = qiskit_statevector(qiskit_native_circuit)
-    assert (numpy.allclose(sv_quasar, sv_qiskit))
+    assert numpy.allclose(sv_quasar, sv_qiskit)

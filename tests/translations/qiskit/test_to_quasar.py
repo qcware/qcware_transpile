@@ -1,7 +1,11 @@
 from hypothesis import given, note, assume, settings
 from qcware_transpile.translations.qiskit.to_quasar import (
-    translation_set, native_is_translatable, translate,
-    instructions_after_last_measurement, audit)
+    translation_set,
+    native_is_translatable,
+    translate,
+    instructions_after_last_measurement,
+    audit,
+)
 from qcware_transpile.matching import simple_translate
 from qcware_transpile.dialects import qiskit as qiskit_dialect
 from ...strategies.qiskit import gates, circuits
@@ -12,11 +16,9 @@ import pytest
 
 ts = translation_set()
 translatable_gatedefs = [
-    x for x in qiskit_dialect.dialect().gate_defs
-    if x.name not in {'measure', 'reset'}
+    x for x in qiskit_dialect.dialect().gate_defs if x.name not in {"measure", "reset"}
 ]
-translatable_circuits = circuits(1, 3, 1, 4,
-                                 gates(gate_list=translatable_gatedefs))
+translatable_circuits = circuits(1, 3, 1, 4, gates(gate_list=translatable_gatedefs))
 
 
 def quasar_probability_vector(circuit: quasar.Circuit):
@@ -26,9 +28,9 @@ def quasar_probability_vector(circuit: quasar.Circuit):
 
 
 def qiskit_probability_vector(circuit: qiskit.QuantumCircuit):
-    backend = qiskit.Aer.get_backend('statevector_simulator')
+    backend = qiskit.Aer.get_backend("statevector_simulator")
     backend.set_options(zero_threshold=1e-20)
-    sv = qiskit.execute(circuit, backend).result().data()['statevector']
+    sv = qiskit.execute(circuit, backend).result().data()["statevector"]
     return abs(sv)
 
 
@@ -38,14 +40,14 @@ def test_instructions_after_measurement():
     c.measure(0, 0)
     ir_c = qiskit_dialect.native_to_ir(c)
     assert len(instructions_after_last_measurement(ir_c)) == 0
-    assert 'instructions_after_last_measurement' not in audit(c)
+    assert "instructions_after_last_measurement" not in audit(c)
 
     c = qiskit.QuantumCircuit(1, 1)
     c.measure(0, 0)
     c.h(0)
     ir_c = qiskit_dialect.native_to_ir(c)
     assert len(instructions_after_last_measurement(ir_c)) == 1
-    assert audit(c)['instructions_after_last_measurement'] == ['h']
+    assert audit(c)["instructions_after_last_measurement"] == ["h"]
 
     c = qiskit.QuantumCircuit(1, 1)
     c.h(0)
@@ -53,7 +55,7 @@ def test_instructions_after_measurement():
     c.h(0)
     ir_c = qiskit_dialect.native_to_ir(c)
     assert len(instructions_after_last_measurement(ir_c)) == 1
-    assert audit(c)['instructions_after_last_measurement'] == ['h']
+    assert audit(c)["instructions_after_last_measurement"] == ["h"]
 
 
 @given(translatable_circuits)
@@ -66,4 +68,4 @@ def test_translate_qiskit_to_quasar(qiskit_circuit):
     pv_quasar = quasar_probability_vector(quasar_native_circuit)
     pv_qiskit = qiskit_probability_vector(qiskit_circuit)
     # this can fail with the default atol
-    assert (numpy.allclose(pv_qiskit, pv_quasar, atol=0.000001))
+    assert numpy.allclose(pv_qiskit, pv_quasar, atol=0.000001)

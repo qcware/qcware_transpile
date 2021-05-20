@@ -1,5 +1,8 @@
 from hypothesis import given, note, assume, settings
-from qcware_transpile.translations.quasar.to_qsharp import translation_set, native_is_translatable 
+from qcware_transpile.translations.quasar.to_qsharp import (
+    translation_set,
+    native_is_translatable,
+)
 from qcware_transpile.matching import translated_gates, simple_translate
 from qcware_transpile.dialects import qsharp as qsharp_dialect, quasar as quasar_dialect
 from qcware_transpile.circuits import reverse_circuit
@@ -10,8 +13,7 @@ import numpy
 
 ts = translation_set()
 translatable_gatenames = [x.name for x in translated_gates(translation_set())]
-translatable_circuits = circuits(1, 3, 1, 4,
-                                 gates(gate_list=translatable_gatenames))
+translatable_circuits = circuits(1, 3, 1, 4, gates(gate_list=translatable_gatenames))
 
 
 def quasar_statevector(circuit: quasar.Circuit):
@@ -34,14 +36,16 @@ def test_translate_quasar_to_qsharp(quasar_circuit):
     # reverse the bit order in the ir quasar circuit
     # since quasar uses big-endian representation and
     # qsharp uses little-endian representation
-    reversed_quasar_transpilation_circuit = reverse_circuit(quasar_transpilation_circuit)
+    reversed_quasar_transpilation_circuit = reverse_circuit(
+        quasar_transpilation_circuit
+    )
     note(str(reversed_quasar_transpilation_circuit))
-    qsharp_transpiled_circuit = simple_translate(ts,
-                                                 reversed_quasar_transpilation_circuit)
+    qsharp_transpiled_circuit = simple_translate(
+        ts, reversed_quasar_transpilation_circuit
+    )
     note(str(qsharp_transpiled_circuit))
-    qsharp_native_circuit = qsharp_dialect.ir_to_native(
-        qsharp_transpiled_circuit)
+    qsharp_native_circuit = qsharp_dialect.ir_to_native(qsharp_transpiled_circuit)
     note(str(qsharp_native_circuit))
     sv_quasar = quasar_statevector(quasar_circuit)
     sv_qsharp = qsharp_statevector(qsharp_native_circuit)
-    assert (numpy.allclose(sv_quasar, sv_qsharp, atol=1e-06))
+    assert numpy.allclose(sv_quasar, sv_qsharp, atol=1e-06)

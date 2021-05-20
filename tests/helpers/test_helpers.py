@@ -1,11 +1,17 @@
-from hypothesis.strategies import (lists, integers, tuples, dictionaries)
+from hypothesis.strategies import lists, integers, tuples, dictionaries
 from hypothesis import given
-from qcware_transpile.helpers import (map_seq_to_seq, prepend_index_to_domain,
-                                      reverse_map)
+from qcware_transpile.helpers import (
+    map_seq_to_seq,
+    prepend_index_to_domain,
+    reverse_map,
+)
 
 equal_length_lists = integers(min_value=0, max_value=10).flatmap(
-    lambda n: tuples(lists(integers(), min_size=n, max_size=n),
-                     lists(integers(), min_size=n, max_size=n)))
+    lambda n: tuples(
+        lists(integers(), min_size=n, max_size=n),
+        lists(integers(), min_size=n, max_size=n),
+    )
+)
 
 
 @given(equal_length_lists)
