@@ -9,6 +9,8 @@ QSharp python docs: https://docs.microsoft.com/en-us/python/qsharp-core/qsharp
 """
 from qcware_transpile.gates import GateDef, Dialect
 from qcware_transpile.circuits import Circuit
+from qcware_transpile.instructions import Instruction
+from jinja2 import Template
 from typing import Tuple, Set
 from pyrsistent import pset
 from pyrsistent.typing import PSet
@@ -30,8 +32,8 @@ def gate_defs() -> PSet[GateDef]:
                                                               1),
                                        ("Rz", {"theta"}, 1), ("S", set(), 1),
                                        ("SWAP", set(), 2), ("T", set(), 1),
-                                       ("X", set(), 1), ("Y", set(),
-                                                         1), ("Z", set(), 1)) # type: ignore
+                                       ("X", set(), 1), ("Y", set(), 1), ("Z", set(), 1), 
+                                       ("R1", {"theta"}, 1), ("CY", {}, 2), ("CZ", {}, 2)) # type: ignore
     return pset({simple_gate(t) for t in simple_gates})
 
 
@@ -39,19 +41,48 @@ def dialect() -> Dialect:
     return Dialect(name=__dialect_name__, gate_defs=gate_defs()) # type: ignore
 
 
+def qsharp_operation_from_instruction(i: Instruction) -> str:
+    qubit_str = ", ".join("qs[%d]" % (q) for q in i.bit_bindings)
+    operation = i.gate_def.name + "(" + qubit_str + ")"
+    if i.parameter_bindings:
+        param_str = ", ".join("%s" % (v) for k, v in i.parameter_bindings.items())
+        operation = i.gate_def.name + "(" + param_str + ", " + qubit_str + ")"
+    return operation
+
+
 def ir_to_native(c: Circuit) -> str:
-    header = """
-open Microsoft.Quantum.Intrinsic;
+    operations = []
+    for instruction in c.instructions:
+        operations.append(qsharp_operation_from_instruction(instruction))
 
-operation Circuit(): Result {
-"""
+    result = Template("""
+    open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Diagnostics as Diagnostics;
 
-    footer = """
-  return 1;
-}
-"""
-    return header + footer
+    operation PrepareState(qs: Qubit[]): Unit {
 
+        {% for operation in operations %} 
+        {{operation}}; 
+        {% endfor %}
 
-bellpair = Circuit.from_tuples(dialect(),
-                               (("H", {}, [0]), ("CNOT", {}, [0, 1])))
+    }
+
+    operation DumpToFile(): Unit {
+
+        use qs = Qubit[{{num_qubits}}];
+        PrepareState(qs);
+        Diagnostics.DumpMachine("{{ output_file }}");
+        ResetAll(qs);
+    }
+
+    operation Measure(): Result[] {
+
+        use qs = Qubit[{{num_qubits}}];
+        PrepareState(qs);
+        return MultiM(qs);
+
+    }
+    """)
+    return result.render(num_qubits=max(c.qubits)+1, operations=operations, output_file="{{ output_file }}")
