@@ -2,6 +2,7 @@ import math
 import numpy
 from hypothesis import given, settings
 from hypothesis.strategies import composite, floats, integers, lists, sampled_from
+from itertools import product
 from jinja2 import Template
 from qcware_transpile.dialects.qsharp.qsharp_dialect import dialect
 from qsharp import compile
@@ -94,3 +95,23 @@ def run_generated_circuit(qc):
         result = parse_dump_machine(lines)
     return result
 
+
+def measure_generated_circuit(qc: str, shots: int):
+    num_qubits = len(compile(qc)[2].simulate())
+    result = {str(list(p)).replace(' ', ''): 0 for p in product(range(2), repeat=num_qubits)}
+    for i in range(shots):
+        x = compile(qc)[2].simulate()
+        result[str(x).replace(' ', '')] += 1
+    for k, v in result.items():
+        result[k] = v/shots
+    return result
+
+
+@given(circuits(1,3,1,4), integers(min_value=1, max_value=1000))
+@settings(deadline=None)
+def test_measurement(qsharp_circuit, shots):
+    # to-do: add azure credentials and assert statement
+    # azure.connect()
+    # azure.target()
+    # azure.execute()
+    measure_generated_circuit(qsharp_circuit, shots)

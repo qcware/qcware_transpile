@@ -116,7 +116,7 @@ def quasar_names_full() -> PSet[str]:
 @functools.lru_cache(1)
 def quasar_gatenames_full() -> PSet[str]:
     """
-    The names of verything in the Gate namespace
+    The names of everything in the Gate namespace
     """
     result = pset({name for name in dir(Gate) if represents_gate(getattr(Gate, name))})
     return result
