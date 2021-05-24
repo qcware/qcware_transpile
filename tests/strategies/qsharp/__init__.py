@@ -52,18 +52,20 @@ def parse_dump_machine(lines):
 
 
 def run_generated_circuit(qc):
+    ops = {x._name: x for x in compile(qc)}
     with tempfile.NamedTemporaryFile(mode="w+") as f:
-        compile(qc)[1].simulate(filename=f.name)
+        ops['DumpToFile'].simulate(filename=f.name)
         lines = f.readlines()
         result = parse_dump_machine(lines)
     return result
 
 
 def measure_generated_circuit(qc: str, shots: int):
-    num_qubits = len(compile(qc)[2].simulate())
+    ops = {x._name: x for x in compile(qc)}
+    num_qubits = len(ops['Measure'].simulate())
     result = {str(list(p)).replace(' ', ''): 0 for p in product(range(2), repeat=num_qubits)}
     for i in range(shots):
-        x = compile(qc)[2].simulate()
+        x = ops['Measure'].simulate()
         result[str(x).replace(' ', '')] += 1
     for k, v in result.items():
         result[k] = v/shots
