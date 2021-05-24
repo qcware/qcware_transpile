@@ -4,7 +4,9 @@ from hypothesis import given, settings
 from hypothesis.strategies import composite, floats, integers, lists, sampled_from
 from itertools import product
 from jinja2 import Template
-from qcware_transpile.dialects.qsharp.qsharp_dialect import dialect
+from qcware_transpile.dialects.qsharp.qsharp_dialect import dialect, ir_to_native
+from qcware_transpile.circuits import Circuit
+from qcware_transpile.instructions import Instruction
 from qsharp import compile
 import tempfile
 import parse
@@ -23,18 +25,12 @@ def gates(draw, num_qubits, gate_list=sorted(dialect().gate_defs)):
             unique=True,
         )
     )
-    qubit_str = ", ".join("qs[%d]" % (q) for q in qubits)
-    result = gate_def.name + "(" + qubit_str + ")"
-    if gate_def.parameter_names:
-        angles = draw(
-            lists(
-                floats(min_value=0, max_value=2 * math.pi),
-                min_size=len(gate_def.parameter_names),
-                max_size=len(gate_def.parameter_names),
-            )
-        )
-        param_str = ", ".join("%s" % (a) for a in angles)
-        result = gate_def.name + "(" + param_str + ", " + qubit_str + ")"
+    kwargs = {}
+    angles = floats(min_value=0, max_value=2 * math.pi)
+    for p in gate_def.parameter_names:
+        value = draw(angles)
+        kwargs[p] = value
+    result = Instruction(gate_def=gate_def, bit_bindings=qubits, parameter_bindings=kwargs)
     return result
 
 
@@ -43,42 +39,9 @@ def circuits(draw, min_qubits, max_qubits, min_length, max_length):
     length = draw(integers(min_value=min_length, max_value=max_length))
     num_qubits = draw(integers(min_value=min_qubits, max_value=max_qubits))
     circuit_gates = draw(lists(gates(num_qubits), min_size=length, max_size=length))
-    result = Template(
-        """
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Diagnostics as Diagnostics;
-
-    operation PrepareState(qs: Qubit[]): Unit {
-
-        {% for operation in operations %} 
-        {{operation}}; 
-        {% endfor %}
-
-    }
-
-    operation DumpToFile(filename: String): Unit {
-
-        use qs = Qubit[{{num_qubits}}];
-        PrepareState(qs);
-        Diagnostics.DumpMachine(filename);
-        ResetAll(qs);
-    }
-
-    operation Measure(): Result[] {
-
-        use qs = Qubit[{{num_qubits}}];
-        PrepareState(qs);
-        return MultiM(qs);
-        
-    }
-    """
-    )
-    return result.render(
-        num_qubits=num_qubits,
-        circuit_gates=circuit_gates
-    )
+    circuit = Circuit.from_instructions(circuit_gates)
+    result = ir_to_native(circuit)
+    return result
 
 
 def parse_dump_machine(lines):
