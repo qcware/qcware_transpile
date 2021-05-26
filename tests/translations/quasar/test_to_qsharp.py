@@ -58,20 +58,28 @@ def test_measurement(shots=1000):
     circuit = quasar.Circuit().H(0).CX(0, 1).X(2)
     qsharp_circuit = thread_first(
                                   circuit, 
-                                  quasar_dialect.native_to_ir, 
+                                  quasar_dialect.native_to_ir,
+                                  reverse_circuit, 
                                   lambda x: simple_translate(translation_set(), x), 
                                   qsharp_dialect.ir_to_native
                                 )
 
-    def int_from_binlist(binlist: str) -> int:
+    def binlist_from_binstr(binlist: str) -> str:
         # convert a string expressing a list of binary digits (e.g. '[1,1,1]') 
-        # into an integer 
-        bs = ''.join(str(x[0]) for x in parse.findall('{:b}', binlist))
-        return int(bs, base=2)
+        # into a string expressing a binary value (e.g. '111')
+        return ''.join(str(x[0]) for x in parse.findall('{:b}', binlist))
+
+    def int_from_binstr(binstr: str) -> int:
+        # convert a string expressing a binary value (e.g. '111') 
+        # into an integer (e.g. 7)
+        return int(binstr, base=2)
 
     qsharp_result = measure_circuit(qc=qsharp_circuit, 
                                     shots=shots)
-    histogram = {int_from_binlist(k): v for k, v in qsharp_result.items()}
+    histogram = {
+        int_from_binstr(binlist_from_binstr(k)[::-1]): v 
+        for k, v in qsharp_result.items()
+    }
     result = ProbabilityHistogram(nqubit=circuit.nqubit, 
                                   nmeasurement=shots,
                                   histogram=histogram)
