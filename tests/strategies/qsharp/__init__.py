@@ -60,23 +60,14 @@ def run_generated_circuit(qc):
     return result
 
 
-def measure_generated_circuit(qc: str, shots: int):
+def measure_circuit(qc: str, shots: int):
     ops = {x._name: x for x in compile(qc)}
     num_qubits = len(ops['Measure'].simulate())
     result = {str(list(p)).replace(' ', ''): 0 for p in product(range(2), repeat=num_qubits)}
     for i in range(shots):
         x = ops['Measure'].simulate()
+        print(x)
         result[str(x).replace(' ', '')] += 1
     for k, v in result.items():
         result[k] = v/shots
     return result
-
-
-@given(circuits(1,3,1,4), integers(min_value=1, max_value=1000))
-@settings(deadline=None)
-def test_measurement(qsharp_circuit, shots):
-    # to-do: add azure credentials and assert statement
-    # azure.connect()
-    # azure.target()
-    # azure.execute()
-    measure_generated_circuit(qsharp_circuit, shots)
