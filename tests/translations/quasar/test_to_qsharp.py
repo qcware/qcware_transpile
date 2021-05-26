@@ -59,6 +59,9 @@ def test_measurement(shots=1000):
     qsharp_circuit = thread_first(
                                   circuit, 
                                   quasar_dialect.native_to_ir,
+                                  # reverse the bit order in the ir quasar circuit
+                                  # since quasar uses big-endian representation and
+                                  # qsharp uses little-endian representation
                                   reverse_circuit, 
                                   lambda x: simple_translate(translation_set(), x), 
                                   qsharp_dialect.ir_to_native
@@ -77,6 +80,11 @@ def test_measurement(shots=1000):
     qsharp_result = measure_circuit(qc=qsharp_circuit, 
                                     shots=shots)
     histogram = {
+        # reverse the bit order of each key in the histogram 
+        # because although qsharp uses little-endian 
+        # (most significant digit first) for representing
+        # states in the statevector, it returns measurements
+        # in index order (least significant digit first)
         int_from_binstr(binlist_from_binstr(k)[::-1]): v 
         for k, v in qsharp_result.items()
     }
