@@ -24,7 +24,7 @@ def simple_gate(t: Tuple[str, set, int]):
 
 def gate_defs() -> PSet[GateDef]:
     # a list of basic gates.  Currently these come from the Microsoft.Quantum.Intrinsics
-    # library
+    # and Microsoft.Quantum.Canon libraries
     simple_gates: Tuple[Tuple[str, Set, int]] = (
         ("CCNOT", set(), 3),
         ("CNOT", set(), 2),

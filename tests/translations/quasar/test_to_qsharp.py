@@ -1,14 +1,17 @@
 from hypothesis import given, note, assume, settings
 from qcware_transpile.translations.quasar.to_qsharp import (
     translation_set,
-    native_is_translatable,
+    native_is_translatable
 )
 from qcware_transpile.matching import translated_gates, simple_translate
 from qcware_transpile.dialects import qsharp as qsharp_dialect, quasar as quasar_dialect
 from qcware_transpile.circuits import reverse_circuit
 from ...strategies.quasar import gates, circuits
-from ...strategies.qsharp import run_generated_circuit
+from ...strategies.qsharp import run_generated_circuit, measure_circuit
+import parse
 import quasar
+from quasar.measurement import ProbabilityHistogram
+from toolz.functoolz import thread_first
 import numpy
 
 ts = translation_set()
@@ -49,3 +52,29 @@ def test_translate_quasar_to_qsharp(quasar_circuit):
     sv_quasar = quasar_statevector(quasar_circuit)
     sv_qsharp = qsharp_statevector(qsharp_native_circuit)
     assert numpy.allclose(sv_quasar, sv_qsharp, atol=1e-06)
+
+
+def test_measurement(shots=1000):
+    circuit = quasar.Circuit().H(0).CX(0, 1).X(2)
+    qsharp_circuit = thread_first(
+                                  circuit, 
+                                  quasar_dialect.native_to_ir, 
+                                  lambda x: simple_translate(translation_set(), x), 
+                                  qsharp_dialect.ir_to_native
+                                )
+
+    def int_from_binlist(binlist: str) -> int:
+        # convert a string expressing a list of binary digits (e.g. '[1,1,1]') 
+        # into an integer 
+        bs = ''.join(str(x[0]) for x in parse.findall('{:b}', binlist))
+        return int(bs, base=2)
+
+    qsharp_result = measure_circuit(qc=qsharp_circuit, 
+                                    shots=shots)
+    histogram = {int_from_binlist(k): v for k, v in qsharp_result.items()}
+    result = ProbabilityHistogram(nqubit=circuit.nqubit, 
+                                  nmeasurement=shots,
+                                  histogram=histogram)
+    # test circuit generates states (0, 0, 1) and (1, 1, 1) 
+    # with 50% probability each
+    assert abs(result.histogram[1] - 0.5) < 0.1
