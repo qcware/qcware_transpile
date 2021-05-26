@@ -66,7 +66,6 @@ def measure_circuit(qc: str, shots: int):
     result = {str(list(p)).replace(' ', ''): 0 for p in product(range(2), repeat=num_qubits)}
     for i in range(shots):
         x = ops['Measure'].simulate()
-        print(x)
         result[str(x).replace(' ', '')] += 1
     for k, v in result.items():
         result[k] = v/shots
