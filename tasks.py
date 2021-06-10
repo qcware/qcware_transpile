@@ -1,4 +1,4 @@
-from invoke import task, Collection
+from invoke import Collection, task
 
 
 # pty=True added so that the tasks understand they're being run in a terminal
@@ -26,7 +26,7 @@ def watch_for_tests(c, test_path="tests"):
 
 @task
 def test(c, test_path="tests"):
-    c.run(f"pytest --workers auto --tests-per-worker auto {test_path}", pty=True)
+    c.run(f"pytest -n auto {test_path}", pty=True)
 
 
 @task
