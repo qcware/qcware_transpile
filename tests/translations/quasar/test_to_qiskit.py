@@ -4,6 +4,7 @@ from qcware_transpile.matching import translated_gates, simple_translate
 from qcware_transpile.dialects import qiskit as qiskit_dialect, quasar as quasar_dialect
 from ...strategies.quasar import gates, circuits
 import qiskit  # type: ignore
+from qiskit.providers.aer import AerSimulator
 import quasar  # type: ignore
 import numpy  # type: ignore
 
@@ -19,8 +20,11 @@ def quasar_statevector(circuit: quasar.Circuit):
 
 
 def qiskit_statevector(circuit: qiskit.QuantumCircuit):
-    backend = qiskit.Aer.get_backend("statevector_simulator")
-    sv = qiskit.execute(circuit, backend).result().data()["statevector"]
+    backend = AerSimulator(method="statevector")
+    c = circuit.copy()
+    c.save_state("final_statevector")
+    result_data = qiskit.execute(c, backend).result().data()
+    sv = result_data["final_statevector"]
     return sv
 
 
