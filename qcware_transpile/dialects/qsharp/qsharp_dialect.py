@@ -73,7 +73,7 @@ def ir_to_native(c: Circuit) -> str:
 
     operation PrepareState(qs: Qubit[]): Unit {
 
-        {% for operation in operations %}{{operation}}; 
+        {% for operation in operations %}{{operation}};
         {% endfor %}
 
     }
@@ -95,7 +95,4 @@ def ir_to_native(c: Circuit) -> str:
     }
     """
     )
-    return result.render(
-        num_qubits=max(c.qubits) + 1,
-        operations=operations
-    )
+    return result.render(num_qubits=max(c.qubits) + 1, operations=operations)

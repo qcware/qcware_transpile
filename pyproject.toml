@@ -25,19 +25,22 @@ parse = "^1.19.0"
 [tool.poetry.dev-dependencies]
 hypothesis = "^6.9.1"
 pytest = "^6.1.2"
-python-language-server = {extras = ["pycodestyle","pydocstyle","pyflakes","rope"], version = "^0.36.1"}
-mypy = "^0.790"
+python-lsp-server = {extras= ["rope"], version="1.2.1"}
+mypy = "^0.910"
 watchdog = {extras = ["watchmedo"], version = "^1.0.1"}
 invoke = "^1.4.1"
-pyls-mypy = "^0.1.8"
+pylsp-mypy = "^0.5.2"
+pyls-isort = "^0.2.2"
+#pyls-memestra = "0.0.15"
 sphinx = "^3.4.3"
 sphinx-rtd-theme = "^0.5.1"
 snakeviz = "^2.1.0"
 pipdeptree = "^2.0.0"
-pyls-black = "^0.4.6"
+python-lsp-black = "^1.0.0"
 # pydantic pinned at 1.7.3 to avoid hypothesis tooling errors; not used directly
 pydantic = "1.7.3"
 pytest-xdist = "^2.2.1"
+pre-commit = "^2.14.0"
 
 [tool.poetry.extras]
 qcware-quasar = ["qcware-quasar"]
@@ -49,3 +52,7 @@ qsharp = ["qsharp"]
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+
+[[tool.mypy.overrides]]

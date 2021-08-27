@@ -56,7 +56,7 @@ class Circuit(object):
     ):
         if qubits is None:
             new_qubits: PSet = pset(
-                set().union(*[set(i.bit_bindings) for i in instructions])
+                set.union(*[set(i.bit_bindings) for i in instructions])
             )  # type: ignore
         else:
             new_qubits = pset(qubits)
