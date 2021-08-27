@@ -1,28 +1,31 @@
 """
 Files for defining gates, gate definitions, and the like
 """
-from icontract import require, ensure  # type: ignore
-from qcware_transpile.exceptions import TranslationException
+from typing import Callable, Iterable, Optional, Tuple, Union
+
 import attr
-from pyrsistent.typing import PSet, PMap
-from pyrsistent import pset, pmap, PMap as PMap_class
-from typing import Callable, Optional, Tuple, Union, Iterable
-from qcware_transpile.helpers import map_seq_to_seq_unique
-from qcware_transpile.instructions import (
-    Instruction,
-    remapped_instruction,
-    audit_instruction_for_executable,
-)
-from qcware_transpile.gates import Dialect, GateDef
+from icontract import ensure, require  # type: ignore
+from pyrsistent import PMap as PMap_class
+from pyrsistent import pmap, pset
+from pyrsistent.typing import PMap, PSet
+
 from qcware_transpile.circuits import (
     Circuit,
     circuit_bit_targets,
-    circuit_is_valid_replacement,
-    circuit_is_valid_executable,
-    circuit_pattern_matches_target,
-    circuit_parameter_map,
     circuit_conforms_to_dialect,
+    circuit_is_valid_executable,
+    circuit_is_valid_replacement,
+    circuit_parameter_map,
     circuit_parameter_names,
+    circuit_pattern_matches_target,
+)
+from qcware_transpile.exceptions import TranslationException
+from qcware_transpile.gates import Dialect, GateDef
+from qcware_transpile.helpers import map_seq_to_seq_unique
+from qcware_transpile.instructions import (
+    Instruction,
+    audit_instruction_for_executable,
+    remapped_instruction,
 )
 
 
@@ -61,6 +64,49 @@ class TranslationRule(object):
 
     def __str__(self):
         return "\n->\n".join([str(self.pattern), str(self.replacement)])
+
+
+def rule_matches_instruction_set(
+    rule: TranslationRule, instructions: Optional[PSet[str]]
+) -> bool:
+    """Checks to see if all instructions in the rule's target match the
+    supplied list of instructions.  Comparison is done by instruction name,
+    case insensitive.
+
+    If the list of instructions is None, the rule matches
+    """
+    if instructions is None:
+        return True
+    allowed_instructions = {i.lower() for i in instructions}
+    target_instructions = {
+        i.gate_def.name.lower() for i in rule.replacement.instructions
+    }
+    target_instructions = {
+        i.gate_def.name.lower() for i in rule.replacement.instructions
+    }
+    accepted_instructions = target_instructions.intersection(allowed_instructions)
+    return len(accepted_instructions) == len(target_instructions)
+
+
+def best_rule_for_instruction_set(
+    rules: Iterable[TranslationRule], instructions: Optional[PSet[str]] = None
+) -> Optional[TranslationRule]:
+    """Finds the first rule in the ordered set of rules that matches all the instructions.
+
+    Matching is done by the lowercased name of all instructions.  This
+    exists because a given gate/instruction (the case study here is
+    RBS) may have multiple translations depending on the allowed gate
+    set.  In the case study here, translating RBS used a CZ
+    instruction, which is legal in braket but not allowed by the IonQ
+    backend.
+
+    If instructions is None, the first rule is returned.
+    If none match, None is returned.
+    """
+    for rule in rules:
+        if rule_matches_instruction_set(rule, instructions):
+            return rule
+    return None
 
 
 @require(lambda a, b: len(a.qubit_ids) == len(b.qubit_ids))

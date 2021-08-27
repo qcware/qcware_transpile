@@ -30,7 +30,9 @@ def gates(draw, num_qubits, gate_list=sorted(dialect().gate_defs)):
     for p in gate_def.parameter_names:
         value = draw(angles)
         kwargs[p] = value
-    result = Instruction(gate_def=gate_def, bit_bindings=qubits, parameter_bindings=kwargs)
+    result = Instruction(
+        gate_def=gate_def, bit_bindings=qubits, parameter_bindings=kwargs
+    )
     return result
 
 
@@ -54,7 +56,7 @@ def parse_dump_machine(lines):
 def run_generated_circuit(qc):
     ops = {x._name: x for x in compile(qc)}
     with tempfile.NamedTemporaryFile(mode="w+") as f:
-        ops['DumpToFile'].simulate(filename=f.name)
+        ops["DumpToFile"].simulate(filename=f.name)
         lines = f.readlines()
         result = parse_dump_machine(lines)
     return result
@@ -62,11 +64,13 @@ def run_generated_circuit(qc):
 
 def measure_circuit(qc: str, shots: int):
     ops = {x._name: x for x in compile(qc)}
-    num_qubits = len(ops['Measure'].simulate())
-    result = {str(list(p)).replace(' ', ''): 0 for p in product(range(2), repeat=num_qubits)}
+    num_qubits = len(ops["Measure"].simulate())
+    result = {
+        str(list(p)).replace(" ", ""): 0.0 for p in product(range(2), repeat=num_qubits)
+    }
     for i in range(shots):
-        x = ops['Measure'].simulate()
-        result[str(x).replace(' ', '')] += 1
+        x = ops["Measure"].simulate()
+        result[str(x).replace(" ", "")] += 1
     for k, v in result.items():
-        result[k] = v/shots
+        result[k] = v / shots
     return result

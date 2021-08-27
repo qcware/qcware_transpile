@@ -1,19 +1,78 @@
-import braket.devices
-from hypothesis import given, note, assume, settings, reproduce_failure
-from qcware_transpile.translations.quasar.to_braket import (
-    translation_set,
-    native_is_translatable,
-)
-from qcware_transpile.matching import translated_gates, simple_translate
-from qcware_transpile.dialects import braket as braket_dialect, quasar as quasar_dialect
-from ...strategies.quasar import gates, circuits
 import braket.circuits
-import quasar
+import braket.devices
 import numpy
+import pytest
+import quasar
+from hypothesis import assume, given, note, reproduce_failure, settings
+from hypothesis.strategies import composite, sampled_from
 
-ts = translation_set()
-translatable_gatenames = [x.name for x in translated_gates(translation_set())]
-translatable_circuits = circuits(1, 3, 1, 4, gates(gate_list=translatable_gatenames))
+from qcware_transpile.dialects import braket as braket_dialect
+from qcware_transpile.dialects import quasar as quasar_dialect
+from qcware_transpile.matching import simple_translate, translated_gates
+from qcware_transpile.translations.quasar.to_braket import (
+    native_is_translatable,
+    translation_set,
+)
+
+from ...strategies.quasar import circuits, gates
+
+ionq_operations = [
+    "x",
+    "y",
+    "z",
+    "rx",
+    "ry",
+    "rz",
+    "h",
+    "cnot",
+    "s",
+    "si",
+    "t",
+    "ti",
+    "v",
+    "vi",
+    "xx",
+    "yy",
+    "zz",
+    "swap",
+    "i",
+]
+rigetti_operations = [
+    "cz",
+    "xy",
+    "ccnot",
+    "cnot",
+    "cphaseshift",
+    "cphaseshift00",
+    "cphaseshift01",
+    "cphaseshift10",
+    "cswap",
+    "h",
+    "i",
+    "iswap",
+    "phaseshift",
+    "pswap",
+    "rx",
+    "ry",
+    "rz",
+    "s",
+    "si",
+    "swap",
+    "t",
+    "ti",
+    "x",
+    "y",
+    "z",
+]
+all_operations = None
+
+
+@composite
+def translation_set_and_circuits(draw, allowed_target_instruction_sets):
+    ts = translation_set(draw(sampled_from(allowed_target_instruction_sets)))
+    translatable_gatenames = [x.name for x in translated_gates(ts)]
+    circuit_result = draw(circuits(1, 3, 1, 4, gates(gate_list=translatable_gatenames)))
+    return ts, circuit_result
 
 
 def quasar_statevector(circuit: quasar.Circuit):
@@ -28,13 +87,8 @@ def braket_statevector(circuit: braket.circuits.Circuit):
     return sv
 
 
-@given(translatable_circuits)
-@settings(deadline=None)
-# @reproduce_failure('6.9.1', b'AAEBEgABYyGxCRIBAxVAQo8e/AAAAQ==')
-# @reproduce_failure('6.9.1', b'AAEBAQAAACFgpsgcAAAB')
-# @reproduce_failure('6.9.1', b'AAEBEAcAAANWdxNeAAAB')
-# @reproduce_failure('6.9.1', b'AAEBAAsAAAAA2r47AAAB')
-def test_translate_quasar_to_braket(quasar_circuit):
+def check_translate_quasar_to_braket(ts_and_circuit):
+    ts, quasar_circuit = ts_and_circuit
     assume(native_is_translatable(quasar_circuit))
     note(str(quasar_circuit))
     quasar_transpilation_circuit = quasar_dialect.native_to_ir(quasar_circuit)
@@ -51,3 +105,22 @@ def test_translate_quasar_to_braket(quasar_circuit):
     sv_braket = braket_statevector(modified_braket_native_circuit)
     # this can fail with the default atol
     assert numpy.allclose(sv_quasar, sv_braket)
+
+
+@given(translation_set_and_circuits([rigetti_operations, ionq_operations, None]))
+@settings(deadline=None)
+# @reproduce_failure('6.9.1', b'AAEBEgABYyGxCRIBAxVAQo8e/AAAAQ==')
+# @reproduce_failure('6.9.1', b'AAEBAQAAACFgpsgcAAAB')
+# @reproduce_failure('6.9.1', b'AAEBEAcAAANWdxNeAAAB')
+# @reproduce_failure('6.9.1', b'AAEBAAsAAAAA2r47AAAB')
+def test_random_circuits(ts_and_circuit):
+    check_translate_quasar_to_braket(ts_and_circuit)
+
+
+@pytest.mark.parametrize(
+    "allowed_instructions", [ionq_operations, rigetti_operations, all_operations]
+)
+@given(circuits(1, 3, 1, 4, gates(gate_list=["RBS"])))
+def test_rbs_(allowed_instructions, circuit):
+    ts = translation_set(allowed_instructions)
+    check_translate_quasar_to_braket(tuple((ts, circuit)))

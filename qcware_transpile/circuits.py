@@ -56,7 +56,7 @@ class Circuit(object):
     ):
         if qubits is None:
             new_qubits: PSet = pset(
-                set().union(*[set(i.bit_bindings) for i in instructions])
+                set.union(*[set(i.bit_bindings) for i in instructions])
             )  # type: ignore
         else:
             new_qubits = pset(qubits)
@@ -202,10 +202,12 @@ def reverse_circuit(c: Circuit) -> Circuit:
         new_instructions.append(
             Instruction(
                 gate_def=instruction.gate_def,
-                parameter_bindings=instruction.parameter_bindings,
+                parameter_bindings=instruction.parameter_bindings,  # type:ignore
                 bit_bindings=new_bit_bindings,
             )
         )
     return Circuit(
-        dialect_name=c.dialect_name, instructions=new_instructions, qubits=qubits
+        dialect_name=c.dialect_name,
+        instructions=new_instructions,
+        qubits=qubits,  # type:ignore
     )
