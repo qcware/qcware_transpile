@@ -1,6 +1,7 @@
 import braket.circuits
 import braket.devices
 import numpy
+import pytest
 import quasar
 from hypothesis import assume, given, note, reproduce_failure, settings
 from hypothesis.strategies import composite, sampled_from
@@ -86,13 +87,7 @@ def braket_statevector(circuit: braket.circuits.Circuit):
     return sv
 
 
-@given(translation_set_and_circuits([rigetti_operations, ionq_operations, None]))
-@settings(deadline=None)
-# @reproduce_failure('6.9.1', b'AAEBEgABYyGxCRIBAxVAQo8e/AAAAQ==')
-# @reproduce_failure('6.9.1', b'AAEBAQAAACFgpsgcAAAB')
-# @reproduce_failure('6.9.1', b'AAEBEAcAAANWdxNeAAAB')
-# @reproduce_failure('6.9.1', b'AAEBAAsAAAAA2r47AAAB')
-def test_translate_quasar_to_braket(ts_and_circuit):
+def check_translate_quasar_to_braket(ts_and_circuit):
     ts, quasar_circuit = ts_and_circuit
     assume(native_is_translatable(quasar_circuit))
     note(str(quasar_circuit))
@@ -110,3 +105,22 @@ def test_translate_quasar_to_braket(ts_and_circuit):
     sv_braket = braket_statevector(modified_braket_native_circuit)
     # this can fail with the default atol
     assert numpy.allclose(sv_quasar, sv_braket)
+
+
+@given(translation_set_and_circuits([rigetti_operations, ionq_operations, None]))
+@settings(deadline=None)
+# @reproduce_failure('6.9.1', b'AAEBEgABYyGxCRIBAxVAQo8e/AAAAQ==')
+# @reproduce_failure('6.9.1', b'AAEBAQAAACFgpsgcAAAB')
+# @reproduce_failure('6.9.1', b'AAEBEAcAAANWdxNeAAAB')
+# @reproduce_failure('6.9.1', b'AAEBAAsAAAAA2r47AAAB')
+def test_random_circuits(ts_and_circuit):
+    check_translate_quasar_to_braket(ts_and_circuit)
+
+
+@pytest.mark.parametrize(
+    "allowed_instructions", [ionq_operations, rigetti_operations, all_operations]
+)
+@given(circuits(1, 3, 1, 4, gates(gate_list=["RBS"])))
+def test_rbs_(allowed_instructions, circuit):
+    ts = translation_set(allowed_instructions)
+    check_translate_quasar_to_braket(tuple((ts, circuit)))
