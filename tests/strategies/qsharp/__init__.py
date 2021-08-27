@@ -66,7 +66,7 @@ def measure_circuit(qc: str, shots: int):
     ops = {x._name: x for x in compile(qc)}
     num_qubits = len(ops["Measure"].simulate())
     result = {
-        str(list(p)).replace(" ", ""): 0 for p in product(range(2), repeat=num_qubits)
+        str(list(p)).replace(" ", ""): 0.0 for p in product(range(2), repeat=num_qubits)
     }
     for i in range(shots):
         x = ops["Measure"].simulate()

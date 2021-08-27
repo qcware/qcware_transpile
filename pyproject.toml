@@ -31,7 +31,6 @@ watchdog = {extras = ["watchmedo"], version = "^1.0.1"}
 invoke = "^1.4.1"
 pylsp-mypy = "^0.5.2"
 pyls-isort = "^0.2.2"
-#pyls-memestra = "0.0.15"
 sphinx = "^3.4.3"
 sphinx-rtd-theme = "^0.5.1"
 snakeviz = "^2.1.0"
@@ -41,6 +40,7 @@ python-lsp-black = "^1.0.0"
 pydantic = "1.7.3"
 pytest-xdist = "^2.2.1"
 pre-commit = "^2.14.0"
+pyls-memestra = "^0.0.15"
 
 [tool.poetry.extras]
 qcware-quasar = ["qcware-quasar"]
@@ -56,3 +56,18 @@ build-backend = "poetry.core.masonry.api"
 [tool.mypy]
 
 [[tool.mypy.overrides]]
+module = [
+'toolz.*',
+'quasar.*',
+'qiskit.*',
+'pyzx',
+'numpy.*',
+'braket.*',
+'qsharp.*',
+'parse.*'
+]
+ignore_missing_imports = true
+
+#[tool.pyls]
+#"plugins.pyls_mypy.enabled": True
+#"plugins.pyls_mypy.live_mode": False
