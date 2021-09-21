@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qcware_transpile"
-version = "0.1.1-alpha.15"
+version = "0.1.1-alpha.16"
 description = "A quantum circuit transpilation framework"
 authors = ["Vic Putz <vic.putz@qcware.com>"]
 include = ["qcware_transpile/py.typed"]
@@ -14,11 +14,11 @@ python = "^3.8"
 pyrsistent = "^0.17.3"
 attrs = "^21.2.0"
 qcware-quasar = { version = "^1.0.2", optional=true }
-qiskit-aer = { version = "^0.8.2", optional=true }
+qiskit-aer = { version = "^0.9.0", optional=true }
 pyzx = {version = "^0.6.3", optional = true}
 toolz = "^0.11.1"
 icontract = "^2.4.1"
-amazon-braket-sdk = {version = "^1.5.10", optional = true}
+amazon-braket-sdk = {version = "^1.9.0", optional = true}
 qsharp = {version = "^0.15.2102", optional = true}
 parse = "^1.19.0"
 
