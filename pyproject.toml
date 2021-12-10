@@ -18,14 +18,18 @@ icontract = "^2.4.1"
 [tool.poetry.dev-dependencies]
 hypothesis = "^6.1.1"
 pytest = "^6.1.2"
-python-language-server = {extras = ["all"], version = "^0.36.1"}
 mypy = "^0.790"
 watchdog = {extras = ["watchmedo"], version = "^1.0.1"}
 invoke = "^1.4.1"
-pyls-mypy = "^0.1.8"
 pytest-parallel = "^0.1.0"
 sphinx = "^3.4.3"
 sphinx-rtd-theme = "^0.5.1"
+python-lsp-server = {extras = ["rope", "pyflakes", "pycodestyle"], version = "^1.3.2"}
+python-lsp-black = "^1.0.1"
+pyls-isort = "^0.2.2"
+pylsp-mypy = "^0.5.4"
+pre-commit = "^2.16.0"
+black = "^21.12b0"
 
 [tool.poetry.extras]
 qcware-quasar = ["qcware-quasar"]
