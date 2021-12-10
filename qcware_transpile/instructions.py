@@ -56,8 +56,14 @@ def instruction_to_dict(i: Instruction) -> dict:
     Dict representation of an instruction, suitable for JSON
     """
     return dict(
-        gate=i.gate_def.name, bits=i.bit_bindings, parameters=i.parameter_bindings
+        gate=i.gate_def.name,
+        bits=list(i.bit_bindings),
+        parameters=dict(i.parameter_bindings),
     )
+
+
+def dict_to_instruction(d: dict) -> Instruction:
+    ...
 
 
 def instruction_parameters_are_fully_bound(i: Instruction) -> bool:

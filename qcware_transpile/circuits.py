@@ -85,7 +85,7 @@ def circuit_to_dict(c: Circuit) -> dict:
     return dict(
         dialect_name=c.dialect_name,
         instructions=[instruction_to_dict(i) for i in c.instructions],
-        qubits=list(qubits),
+        qubits=list(c.qubits),
     )
 
 
