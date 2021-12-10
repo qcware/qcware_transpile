@@ -1,6 +1,9 @@
 from ..strategies.qiskit import circuits
-from qcware_transpile.dialects.qiskit import (native_to_ir, ir_to_native,
-                                              native_circuits_are_equivalent)
+from qcware_transpile.dialects.qiskit import (
+    native_to_ir,
+    ir_to_native,
+    native_circuits_are_equivalent,
+)
 from hypothesis import given, note, settings
 
 

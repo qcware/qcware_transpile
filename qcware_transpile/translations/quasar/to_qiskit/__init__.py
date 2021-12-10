@@ -1,10 +1,14 @@
-from qcware_transpile.matching import (TranslationRule, TranslationSet,
-                                       trivial_rule, trivial_rules,
-                                       untranslated_gates, simple_translate,
-                                       circuit_is_simply_translatable_by,
-                                       untranslatable_instructions)
-from qcware_transpile.dialects import (quasar as quasar_dialect, qiskit as
-                                       qiskit_dialect)
+from qcware_transpile.matching import (
+    TranslationRule,
+    TranslationSet,
+    trivial_rule,
+    trivial_rules,
+    untranslated_gates,
+    simple_translate,
+    circuit_is_simply_translatable_by,
+    untranslatable_instructions,
+)
+from qcware_transpile.dialects import quasar as quasar_dialect, qiskit as qiskit_dialect
 from qcware_transpile.circuits import Circuit
 from qcware_transpile import TranslationException
 from icontract.errors import ViolationError
@@ -22,38 +26,56 @@ def translation_set():
     """
     Creates a translation set from quasar to qiskit
     """
-    trivial_gates = {('I', 'id'), ('H', 'h'), ('X', 'x'),
-                     ('Y', 'y'), ('Z', 'z'), ('S', 's'),
-                     ('T', 't'), ('CX', 'cx'), ('CY', 'cy'),
-                     ('CZ', 'cz'), ('CCX', 'ccx'), ('u1', 'u1'),
-                     ('SWAP', 'swap'), ('CSWAP', 'cswap'),
-                     ('Rx', 'rx', double_angle),
-                     ('Ry', 'ry', double_angle),
-                     ('Rz', 'rz', double_angle)}
+    trivial_gates = {
+        ("I", "id"),
+        ("H", "h"),
+        ("X", "x"),
+        ("Y", "y"),
+        ("Z", "z"),
+        ("S", "s"),
+        ("T", "t"),
+        ("CX", "cx"),
+        ("CY", "cy"),
+        ("CZ", "cz"),
+        ("CCX", "ccx"),
+        ("u1", "u1"),
+        ("SWAP", "swap"),
+        ("CSWAP", "cswap"),
+        ("Rx", "rx", double_angle),
+        ("Ry", "ry", double_angle),
+        ("Rz", "rz", double_angle),
+    }
 
     quasar_d = quasar_dialect.dialect()
     qiskit_d = qiskit_dialect.dialect()
     other_rules = {
         TranslationRule(
-            pattern=Circuit.from_tuples(quasar_d, [('RBS', {}, [0, 1])]),
+            pattern=Circuit.from_tuples(quasar_d, [("RBS", {}, [0, 1])]),
             replacement=Circuit.from_tuples(
-                qiskit_d, [('cx', {}, [1, 0]),
-                           ('cry', {
-                               'theta': lambda pm: double_angle(pm[
-                                   (0, 'theta')])
-                           }, [0, 1]), ('cx', {}, [1, 0])]))
+                qiskit_d,
+                [
+                    ("cx", {}, [1, 0]),
+                    (
+                        "cry",
+                        {"theta": lambda pm: double_angle(pm[(0, "theta")])},
+                        [0, 1],
+                    ),
+                    ("cx", {}, [1, 0]),
+                ],
+            ),
+        )
     }
     # the U2/U3 rules are disabled for now as they seem to be problematic
 
-    rules = pset().union(trivial_rules(quasar_d, qiskit_d,
-                                       trivial_gates)).union(other_rules)
-    return TranslationSet(from_dialect=quasar_d,
-                          to_dialect=qiskit_d,
-                          rules=rules)
+    rules = (
+        pset()
+        .union(trivial_rules(quasar_d, qiskit_d, trivial_gates))
+        .union(other_rules)
+    )
+    return TranslationSet(from_dialect=quasar_d, to_dialect=qiskit_d, rules=rules)
 
 
-target_gatenames = sorted(
-    [x.name for x in translation_set().to_dialect.gate_defs])
+target_gatenames = sorted([x.name for x in translation_set().to_dialect.gate_defs])
 untranslated = sorted([x.name for x in untranslated_gates(translation_set())])
 
 
@@ -67,9 +89,9 @@ def audit(c: quasar.Circuit):
 
     result = {}
     if len(untranslatable) > 0:
-        result['untranslatable_instructions'] = untranslatable
+        result["untranslatable_instructions"] = untranslatable
     if not quasar.Circuit.test_equivalence(c, c.center()):
-        result['circuit_not_centered'] = True
+        result["circuit_not_centered"] = True
     return result
 
 
@@ -88,8 +110,11 @@ def translate(c: quasar.Circuit) -> qiskit.QuantumCircuit:
     if not native_is_translatable(c):
         raise TranslationException(audit(c))
     try:
-        return thread_first(c, quasar_dialect.native_to_ir,
-                            lambda x: simple_translate(translation_set(), x),
-                            qiskit_dialect.ir_to_native)
+        return thread_first(
+            c,
+            quasar_dialect.native_to_ir,
+            lambda x: simple_translate(translation_set(), x),
+            qiskit_dialect.ir_to_native,
+        )
     except ViolationError:
         raise TranslationException(audit(c))

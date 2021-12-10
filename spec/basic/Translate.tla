@@ -18,14 +18,14 @@ MultiGateTranslations ==
 {
   [ pattern |-> << << RZ_A, EMPTYFUNC, << 0 >> >> >>,
     replacement |-> << << RZ_B, "theta_b" :> << 1, "theta" >>, << 0 >> >> >> ],
-  
+
   [ pattern |-> CircuitFromGate(SWAP_A),
     replacement |-> << << CX_B, EMPTYFUNC, << 0, 1 >> >>,
                      << CX_B, EMPTYFUNC, << 1, 0 >> >>,
                      << CX_B, EMPTYFUNC, << 0, 1 >> >> >> ]
 }
 
-Translations == 
+Translations ==
   SingleGateTranslations \cup MultiGateTranslations
 
 

@@ -52,7 +52,7 @@ BitBindingSignature(circuit) ==
   LET forwardBindings == SeqBitBindings(circuit) IN
   LET reverseBindings == ReverseFunction(forwardBindings) IN
   Range(reverseBindings) \*SetReverseBindings)
-  
+
 \* the sequence of gate names in the circuit
 GateNames(circuit) ==
   [ x \in 1..Len(circuit) |-> circuit[x][1].name ]
@@ -82,7 +82,7 @@ PatternMatchesCircuit(pattern, circuit) ==
   /\ GateNames(pattern) = GateNames(circuit)
   /\ ParameterMappingsMatch(ParameterMappings(pattern), ParameterMappings(circuit))
   /\ BitBindingSignature(pattern) = BitBindingSignature(circuit)
-  
+
 TEST_A == << << [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> <<2, 3>>],
             << >>,
             <<0, 1>> >>,
@@ -97,7 +97,7 @@ TEST_B == << << [name |-> "SWAP_A", parameters |-> {}, qubitIds |-> <<2, 3>>],
             <<0>> >> >>
 
 \* Creates a one-instruction circuit from a gate, with an empty function for
-\* parameter mappings.  
+\* parameter mappings.
 \* We're also taking the non-tla route that circuits begin with bit 0, and
 \* are numbered sequentially from there
 CircuitFromGate(g) ==
@@ -123,11 +123,11 @@ ReplacementValidForPattern(pattern, replacement) ==
 \* Remap the replacement instruction to the parameters and qubit IDs used by the circuit.
 \* The replacement qubit maps map from the replacement/pattern to the circuit
 RemapReplacementInstruction( ReplacementQubitMap, ReplacementParameterMap, instr ) ==
-  LET parameters == 
-            [ x \in DOMAIN instr[2] |-> 
+  LET parameters ==
+            [ x \in DOMAIN instr[2] |->
               ReplacementParameterMap[ instr[2][x][1] ][ instr[2][x][2] ] ]
-         newQubitIds == 
-            [ x \in 1..Len(instr[3]) |-> 
+         newQubitIds ==
+            [ x \in 1..Len(instr[3]) |->
               ReplacementQubitMap[ instr[3][x] ] ]
   IN
   << instr[1], parameters, newQubitIds >>

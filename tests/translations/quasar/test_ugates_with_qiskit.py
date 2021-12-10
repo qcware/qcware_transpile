@@ -34,7 +34,7 @@ def U3matrix(theta, phi, lam):
     return qiskit.circuit.library.U3Gate(theta, phi, lam).to_matrix()
 
 
-angles = floats(min_value=0, max_value=2*np.pi)
+angles = floats(min_value=0, max_value=2 * np.pi)
 
 
 @given(angles)

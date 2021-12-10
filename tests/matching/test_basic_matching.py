@@ -1,6 +1,12 @@
 from hypothesis import given, note, HealthCheck, settings, assume
-from hypothesis.strategies import (data, lists, integers, dictionaries, tuples,
-                                   sampled_from)
+from hypothesis.strategies import (
+    data,
+    lists,
+    integers,
+    dictionaries,
+    tuples,
+    sampled_from,
+)
 from qcware_transpile.gates import Dialect
 from qcware_transpile.circuits import (
     Circuit,
@@ -11,7 +17,9 @@ from qcware_transpile.circuits import (
     circuit_parameter_map,
 )
 from qcware_transpile.instructions import (
-    remapped_instruction, _is_valid_replacement_parameter_value)
+    remapped_instruction,
+    _is_valid_replacement_parameter_value,
+)
 from qcware_transpile.helpers import exists_in
 from ..strategies import (
     dialect_and_circuit,
@@ -54,8 +62,7 @@ def test_bit_binding_signature(dc: Tuple[Dialect, Circuit]):
         # bit IDs in the circuit which are bound to the same
         # bit target
         bound_bits = {
-            c.instructions[binding[0]].bit_bindings[binding[1]]
-            for binding in sig
+            c.instructions[binding[0]].bit_bindings[binding[1]] for binding in sig
         }
         assert len(bound_bits) == 1
 
@@ -66,8 +73,7 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
     d, c = dc
     # first test that the circuit matches itself
     assert circuit_pattern_matches_target(c, c)
-    first_instructions_parameters = list(
-        c.instructions[0].parameter_bindings.keys())
+    first_instructions_parameters = list(c.instructions[0].parameter_bindings.keys())
     if len(first_instructions_parameters) > 0:
         # change a value of a parameter in the pattern and
         # they should not match
@@ -75,12 +81,18 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
         val = c.instructions[0].parameter_bindings[key] + 1
         assert val == c.instructions[0].parameter_bindings[key] + 1
         # ok, I love pyrsistent, but changing nested structures can be painful
-        p = attr.evolve(c,
-                        instructions=c.instructions.set(
-                            0,
-                            attr.evolve(c.instructions[0],
-                                        parameter_bindings=c.instructions[0].
-                                        parameter_bindings.set(key, val))))
+        p = attr.evolve(
+            c,
+            instructions=c.instructions.set(
+                0,
+                attr.evolve(
+                    c.instructions[0],
+                    parameter_bindings=c.instructions[0].parameter_bindings.set(
+                        key, val
+                    ),
+                ),
+            ),
+        )
 
         assert p.instructions[0].parameter_bindings[key] == val
         assert not circuit_pattern_matches_target(p, c)
@@ -93,10 +105,12 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
                 0,
                 attr.evolve(
                     c.instructions[0],
-                    parameter_bindings=c.instructions[0].parameter_bindings.
-                    discard(
-                        list(
-                            c.instructions[0].parameter_bindings.keys())[0]))))
+                    parameter_bindings=c.instructions[0].parameter_bindings.discard(
+                        list(c.instructions[0].parameter_bindings.keys())[0]
+                    ),
+                ),
+            ),
+        )
         note("***")
         note(str(c))
         note(str(p))
@@ -117,13 +131,11 @@ def test_circuit_pattern_matches_target(dc: Tuple[Dialect, Circuit]):
             instruction = c.instructions[bit_to_change[0]]
             bit_bindings = instruction.bit_bindings
             new_bindings = bit_bindings.set(bit_to_change[1], 1024)
-            new_instruction = attr.evolve(instruction,
-                                          bit_bindings=new_bindings)
-            p = attr.evolve(c,
-                            instructions=c.instructions.set(
-                                bit_to_change[0], new_instruction))
-            assert circuit_bit_binding_signature(
-                p) != circuit_bit_binding_signature(c)
+            new_instruction = attr.evolve(instruction, bit_bindings=new_bindings)
+            p = attr.evolve(
+                c, instructions=c.instructions.set(bit_to_change[0], new_instruction)
+            )
+            assert circuit_bit_binding_signature(p) != circuit_bit_binding_signature(c)
             assert not circuit_pattern_matches_target(p, c)
 
 
@@ -135,21 +147,25 @@ def test_replacement_parameter_values(v):
 @given(data())
 def test_remap_instruction(data):
     parameter_map = data.draw(
-        dictionaries(keys=tuples(integers(), parameter_names),
-                     values=integers(),
-                     min_size=3,
-                     max_size=3))
+        dictionaries(
+            keys=tuples(integers(), parameter_names),
+            values=integers(),
+            min_size=3,
+            max_size=3,
+        )
+    )
     d, c = data.draw(
-        dialect_and_circuit(min_gates=3,
-                            max_gates=3,
-                            min_circuit_length=1,
-                            max_circuit_length=1,
-                            parameter_values=sampled_from(
-                                list(parameter_map.keys()))))
+        dialect_and_circuit(
+            min_gates=3,
+            max_gates=3,
+            min_circuit_length=1,
+            max_circuit_length=1,
+            parameter_values=sampled_from(list(parameter_map.keys())),
+        )
+    )
     # let's make a random mapping from the circuit bits to arbitratry integers
     bits = list(circuit_bit_targets(c))
-    new_bits = data.draw(
-        lists(integers(), min_size=len(bits), max_size=len(bits)))
+    new_bits = data.draw(lists(integers(), min_size=len(bits), max_size=len(bits)))
     note(str(c))
     note(f"{bits}->{new_bits}")
     qubit_map = {bits[i]: new_bits[i] for i in range(len(bits))}
@@ -160,29 +176,27 @@ def test_remap_instruction(data):
     assert set(rmi.bit_bindings) == set(new_bits)
     # the values of the parameters in the new instruction should be in the set
     # of values of the parameter map
-    assert set(rmi.parameter_bindings.values()).issubset(
-        set(parameter_map.values()))
+    assert set(rmi.parameter_bindings.values()).issubset(set(parameter_map.values()))
 
 
 # the data generation for this is tricky and the strategies need to be revisited
 # because it takes far too long to create two dialects with a translation table
 # and generatable circuits which can be translated
 @given(data())
-@settings(
-    suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
+@settings(suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
 def test_translate_circuit(data):
     d1 = data.draw(
-        dialects(min_gates=5,
-                 min_num_parameters=0,
-                 max_num_parameters=0,
-                 max_num_bits=1))
+        dialects(
+            min_gates=5, min_num_parameters=0, max_num_parameters=0, max_num_bits=1
+        )
+    )
     note("From dialect")
     note(str(d1))
     d2 = data.draw(
-        dialects(min_gates=5,
-                 min_num_parameters=0,
-                 max_num_parameters=0,
-                 max_num_bits=1))
+        dialects(
+            min_gates=5, min_num_parameters=0, max_num_parameters=0, max_num_bits=1
+        )
+    )
     note("To dialect")
     note(str(d2))
     ts = data.draw(translation_sets(d1, d2, min_translations=3))
@@ -201,9 +215,11 @@ def test_translate_circuit(data):
     # assert circuit_conforms_to_dialect(to_circuit, d2)
 
 
-@given(data=data(),
-       num_parameters=integers(min_value=0, max_value=1),
-       num_bits=integers(min_value=1, max_value=3))
+@given(
+    data=data(),
+    num_parameters=integers(min_value=0, max_value=1),
+    num_bits=integers(min_value=1, max_value=3),
+)
 @settings(suppress_health_check=[HealthCheck.too_slow])
 def test_trivial_rule(data, num_parameters, num_bits):
     """
@@ -211,15 +227,21 @@ def test_trivial_rule(data, num_parameters, num_bits):
     exercises the pre- and post-conditions for testing
     """
     dialect_a = data.draw(
-        dialects(min_gates=7,
-                 min_num_parameters=num_parameters,
-                 max_num_parameters=num_parameters,
-                 max_num_bits=num_bits))
+        dialects(
+            min_gates=7,
+            min_num_parameters=num_parameters,
+            max_num_parameters=num_parameters,
+            max_num_bits=num_bits,
+        )
+    )
     dialect_b = data.draw(
-        dialects(min_gates=7,
-                 min_num_parameters=num_parameters,
-                 max_num_parameters=num_parameters,
-                 max_num_bits=num_bits))
+        dialects(
+            min_gates=7,
+            min_num_parameters=num_parameters,
+            max_num_parameters=num_parameters,
+            max_num_bits=num_bits,
+        )
+    )
 
     def simple_pred(x):
         """
@@ -228,8 +250,7 @@ def test_trivial_rule(data, num_parameters, num_bits):
         of parameters and which uses the max number of bits.  Trivial
         Rules handle up to one parameter.
         """
-        return len(x.parameter_names) == num_parameters and len(
-            x.qubit_ids) == num_bits
+        return len(x.parameter_names) == num_parameters and len(x.qubit_ids) == num_bits
 
     assume(exists_in(dialect_a.gate_defs, simple_pred))
     assume(exists_in(dialect_b.gate_defs, simple_pred))

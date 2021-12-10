@@ -15,7 +15,7 @@ Quasar
 
 Qiskit
 ------
-      
+
 .. automodule:: qcware_transpile.dialects.qiskit
    :members: native_to_ir, ir_to_native, dialect, native_circuits_are_equivalent
    :imported-members:

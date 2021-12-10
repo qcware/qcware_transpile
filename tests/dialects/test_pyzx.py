@@ -1,8 +1,10 @@
 from ..strategies.pyzx import circuits
 from pyzx import Circuit  # type: ignore
-from qcware_transpile.dialects.pyzx import (native_to_ir,
-                                            ir_to_native,
-                                            native_circuits_are_equivalent)
+from qcware_transpile.dialects.pyzx import (
+    native_to_ir,
+    ir_to_native,
+    native_circuits_are_equivalent,
+)
 from hypothesis import given, note, HealthCheck, settings
 
 

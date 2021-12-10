@@ -1,7 +1,6 @@
 from ..strategies.quasar import circuits
 from quasar import Circuit  # type: ignore
-from qcware_transpile.dialects.quasar import (native_to_ir,
-                                              ir_to_native)
+from qcware_transpile.dialects.quasar import native_to_ir, ir_to_native
 from hypothesis import given
 
 

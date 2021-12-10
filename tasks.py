@@ -7,25 +7,26 @@ from invoke import task, Collection
 def watch_for_mypy(c):
     c.run(
         "watchmedo shell-command --drop --command='mypy tests qcware_transpile' --recursive tests qcware_transpile",
-        pty=True)
+        pty=True,
+    )
 
 
 @task
 def mypy(c):
-    c.run('mypy tests qcware_transpile', pty=True)
+    c.run("mypy tests qcware_transpile", pty=True)
 
 
 @task
 def watch_for_tests(c, test_path="tests"):
     c.run(
         f"watchmedo shell-command --drop --command='pytest --workers auto --tests-per-worker auto {test_path}' --recursive tests qcware_transpile",
-        pty=True)
+        pty=True,
+    )
 
 
 @task
 def test(c, test_path="tests"):
-    c.run(f'pytest --workers auto --tests-per-worker auto {test_path}',
-          pty=True)
+    c.run(f"pytest --workers auto --tests-per-worker auto {test_path}", pty=True)
 
 
 watches = Collection("watch")
@@ -34,5 +35,5 @@ watches.add_task(watch_for_tests, "tests")
 
 ns = Collection()
 ns.add_collection(watches, "watch")
-ns.add_task(test, 'test')
-ns.add_task(mypy, 'mypy')
+ns.add_task(test, "test")
+ns.add_task(mypy, "mypy")
