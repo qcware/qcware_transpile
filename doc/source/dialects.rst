@@ -15,7 +15,7 @@ Quasar
 
 Qiskit
 ------
-      
+
 .. automodule:: qcware_transpile.dialects.qiskit
    :members: native_to_ir, ir_to_native, dialect, native_circuits_are_equivalent
    :imported-members:
@@ -32,7 +32,7 @@ Braket
 
 Braket backends do not accept circuits with non-contiguous qubit indices supplied.
 To supply contiguous qubit indices, transpilation from Quasar to Braket inserts an
-identity gate at each "missing" qubit index.  
+identity gate at each "missing" qubit index.
 
 QSharp
 ------

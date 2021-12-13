@@ -1,12 +1,14 @@
+from fractions import Fraction
+from inspect import signature
+from typing import Any, Mapping, Set, Tuple
+
 import attr
-from typing import Mapping, Any, Set, Tuple
+import numpy
 from pyrsistent import pmap
-from pyrsistent.typing import PVector, PMap, PSet
+from pyrsistent.typing import PMap, PSet, PVector
+
 from .gates import GateDef, _qubit_ids
 from .helpers import map_seq_to_seq
-from inspect import signature
-from fractions import Fraction
-import numpy
 
 
 @attr.s(frozen=True)
@@ -47,6 +49,21 @@ class Instruction(object):
             else ", (" + ",".join(["{k}={v}" for k, v in self.metadata.items()]) + ")"
         )
         return f"{self.gate_def.name}({parameter_bindings_str}), ({bit_bindings_str}){metadata})"
+
+
+def instruction_to_dict(i: Instruction) -> dict:
+    """
+    Dict representation of an instruction, suitable for JSON
+    """
+    return dict(
+        gate=i.gate_def.name,
+        bits=list(i.bit_bindings),
+        parameters=dict(i.parameter_bindings),
+    )
+
+
+def dict_to_instruction(d: dict) -> Instruction:
+    ...
 
 
 def instruction_parameters_are_fully_bound(i: Instruction) -> bool:

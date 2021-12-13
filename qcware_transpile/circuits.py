@@ -1,19 +1,17 @@
-import attr
 import itertools
-from typing import Set, Tuple, Sequence, Mapping, Any, Optional
-from pyrsistent import pvector, pmap, pset
-from pyrsistent.typing import PMap, PSet, PVector
+from typing import Any, Mapping, Optional, Sequence, Set, Tuple
+
+import attr
 from icontract import require  # type: ignore
-from .helpers import reverse_map
-from .gates import Dialect
-from .instructions import (
-    Instruction,
-    instruction_bit_bindings_map,
-    instruction_parameters_are_fully_bound,
-    instruction_is_valid_executable,
-    instruction_is_valid_replacement,
-    instruction_pattern_matches_target,
-)
+from pyrsistent import pmap, pset, pvector
+from pyrsistent.typing import PMap, PSet, PVector
+
+from qcware_transpile.gates import Dialect
+from qcware_transpile.helpers import reverse_map
+from qcware_transpile.instructions import (
+    Instruction, instruction_bit_bindings_map, instruction_is_valid_executable,
+    instruction_is_valid_replacement, instruction_parameters_are_fully_bound,
+    instruction_pattern_matches_target)
 
 
 @attr.s(frozen=True)
