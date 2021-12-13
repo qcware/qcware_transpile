@@ -11,35 +11,35 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pyrsistent = "^0.17.3"
+pyrsistent = "^0.18.0"
 attrs = "^21.2.0"
-qcware-quasar = { version = "^1.0.2", optional=true }
+qcware-quasar = { version = "^1.0.6", optional=true }
 qiskit-aer = { version = "^0.9.0", optional=true }
-pyzx = {version = "^0.6.3", optional = true}
-toolz = "^0.11.1"
-icontract = "^2.4.1"
+pyzx = {version = "^0.6.4", optional = true}
+toolz = "^0.11.2"
+icontract = "^2.6.0"
 amazon-braket-sdk = {version = "^1.9.0", optional = true}
 qsharp = {version = "^0.15.2102", optional = true}
 parse = "^1.19.0"
 
 [tool.poetry.dev-dependencies]
-hypothesis = "^6.9.1"
-pytest = "^6.1.2"
-python-lsp-server = {extras= ["rope"], version="1.2.1"}
+hypothesis = "^6.31.4"
+pytest = "^6.2.5"
+python-lsp-server = {extras= ["rope"], version="1.3.2"}
 mypy = "^0.910"
 watchdog = {extras = ["watchmedo"], version = "^1.0.1"}
-invoke = "^1.4.1"
-pylsp-mypy = "^0.5.2"
+invoke = "^1.6.0"
+pylsp-mypy = "^0.5.4"
 pyls-isort = "^0.2.2"
 sphinx = "^3.4.3"
 sphinx-rtd-theme = "^0.5.1"
 snakeviz = "^2.1.0"
 pipdeptree = "^2.0.0"
-python-lsp-black = "^1.0.0"
+python-lsp-black = "^1.0.1"
 # pydantic pinned at 1.7.3 to avoid hypothesis tooling errors; not used directly
 pydantic = "1.7.3"
-pytest-xdist = "^2.2.1"
-pre-commit = "^2.14.0"
+pytest-xdist = "^2.5.0"
+pre-commit = "^2.16.0"
 pyls-memestra = "^0.0.15"
 
 [tool.poetry.extras]
