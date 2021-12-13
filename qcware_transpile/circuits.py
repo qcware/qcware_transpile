@@ -6,15 +6,12 @@ from icontract import require  # type: ignore
 from pyrsistent import pmap, pset, pvector
 from pyrsistent.typing import PMap, PSet, PVector
 
-from .gates import Dialect
-from .instructions import (
-    Instruction,
-    instruction_bit_bindings_map,
-    instruction_is_valid_executable,
-    instruction_is_valid_replacement,
-    instruction_parameters_are_fully_bound,
-    instruction_pattern_matches_target,
-)
+from qcware_transpile.gates import Dialect
+from qcware_transpile.helpers import reverse_map
+from qcware_transpile.instructions import (
+    Instruction, instruction_bit_bindings_map, instruction_is_valid_executable,
+    instruction_is_valid_replacement, instruction_parameters_are_fully_bound,
+    instruction_pattern_matches_target)
 
 
 @attr.s(frozen=True)
