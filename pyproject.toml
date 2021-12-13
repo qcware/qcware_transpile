@@ -37,7 +37,7 @@ snakeviz = "^2.1.0"
 pipdeptree = "^2.0.0"
 python-lsp-black = "^1.0.1"
 # pydantic pinned at 1.7.3 to avoid hypothesis tooling errors; not used directly
-pydantic = "1.7.3"
+pydantic = "1.7.4"
 pytest-xdist = "^2.5.0"
 pre-commit = "^2.16.0"
 pyls-memestra = "^0.0.15"
