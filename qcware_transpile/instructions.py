@@ -51,21 +51,6 @@ class Instruction(object):
         return f"{self.gate_def.name}({parameter_bindings_str}), ({bit_bindings_str}){metadata})"
 
 
-def instruction_to_dict(i: Instruction) -> dict:
-    """
-    Dict representation of an instruction, suitable for JSON
-    """
-    return dict(
-        gate=i.gate_def.name,
-        bits=list(i.bit_bindings),
-        parameters=dict(i.parameter_bindings),
-    )
-
-
-def dict_to_instruction(d: dict) -> Instruction:
-    ...
-
-
 def instruction_parameters_are_fully_bound(i: Instruction) -> bool:
     """
     Whether or not all parameters in the instruction are fully

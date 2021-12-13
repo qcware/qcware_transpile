@@ -10,6 +10,7 @@ from qcware_transpile.matching import simple_translate
 from qcware_transpile.dialects import qiskit as qiskit_dialect
 from ...strategies.qiskit import gates, circuits
 import qiskit  # type: ignore
+from qiskit.providers.aer import AerSimulator
 import quasar  # type: ignore
 import numpy  # type: ignore
 import pytest
@@ -28,9 +29,11 @@ def quasar_probability_vector(circuit: quasar.Circuit):
 
 
 def qiskit_probability_vector(circuit: qiskit.QuantumCircuit):
-    backend = qiskit.Aer.get_backend("statevector_simulator")
-    backend.set_options(zero_threshold=1e-20)
-    sv = qiskit.execute(circuit, backend).result().data()["statevector"]
+    backend = AerSimulator(method="statevector")
+    c = circuit.copy()
+    c.save_state("final_statevector")
+    result_data = qiskit.execute(c, backend).result().data()
+    sv = result_data["final_statevector"]
     return abs(sv)
 
 
