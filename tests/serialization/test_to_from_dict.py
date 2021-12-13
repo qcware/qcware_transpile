@@ -2,7 +2,7 @@ from hypothesis import given
 from quasar import Circuit  # type: ignore
 
 from qcware_transpile.dialects.quasar import ir_to_native, native_to_ir, dialect
-from qcware_transpile.serialization import (circuit_to_dict, dict_to_circuit)
+from qcware_transpile.serialization import circuit_to_dict, dict_to_circuit
 from tests.strategies.quasar import circuits
 
 

@@ -1,12 +1,406 @@
 version: 2.1
 
-orbs:
-  python: circleci/python@1.3.2
+executors:
+  qsharp:
+    docker:
+      - image: vputz/cimg_python_qsharp
+
+commands:
+    install-packages:
+        description: |
+            Setup a python environment and install the packages for your project either globally with pip or in a virtualenv with poetry or pipenv. With pip as pkg-manager, the command will assume `-r requirements.txt`. With poetry as pkg-manager, the command will assume `--no-ansi`. For pipenv, no args are provided. Expect the default caching locations for packages and virtualenvs on a debian system with pyenv.
+        parameters:
+            app-dir:
+                default: .
+                description: Path to the directory containing your python project. Not needed if dependency file lives in the root.
+                type: string
+            args:
+                default: ""
+                description: |
+                    Arguments to pass to install command for pipenv and poetry. For pip, arguments are after the command, `pip install -r requirements.txt <args>`.
+                    For poetry, args are after `--no-ansi` as output option.
+                type: string
+            cache-version:
+                default: v1
+                description: Change the default cache version if you need to clear the cache for any reason.
+                type: string
+            include-branch-in-cache-key:
+                default: true
+                description: |
+                    If true, this cache bucket will only apply to jobs within the same branch.
+                type: boolean
+            include-python-in-cache-key:
+                default: true
+                description: |
+                    If true, this cache bucket will checksum the pyenv python version with the cache-key.
+                type: boolean
+            path-args:
+                default: .
+                description: |
+                    If using `pip-dist` these are the arguments after the command `pip install -e` that is by default set to `.`.  Use of this parameter allows
+                    for multiple paths to be specified.  This is important when extra paths are required to install extra packages referenced via `extras_requires`.
+                type: string
+            pip-dependency-file:
+                default: requirements.txt
+                description: |
+                    Name of the requirements file that needs to be installed with pip. Prepended with `app-dir`. If using pipenv or poetry, this is ignored.
+                    If using `pip-dist`, use this to use the cache checksum against the `setup.py` if desired.
+                    If `pip-dependency-file` is set to an empty string, no dependency file is used in the `pip install` command.
+                type: string
+            pkg-manager:
+                default: pipenv
+                description: Which package management tool to use, pipenv, pip or poetry with dependency file. Use `pip-dist` to install with project setup.py.
+                enum:
+                    - poetry
+                    - pipenv
+                    - pip
+                    - pip-dist
+                type: enum
+            pre-install-steps:
+                default: []
+                description: |
+                    Steps needed between restoring the cache and the install step.
+                type: steps
+            pypi-cache:
+                default: true
+                description: Keep all versions of pypi and site-package caches for faster rebuilding overall.
+                type: boolean
+            venv-cache:
+                default: true
+                description: Use the lockfile to cache the virtualenv. Not used with pip as pkg-manager.
+                type: boolean
+        steps:
+            - when:
+                condition: << parameters.pypi-cache >>
+                steps:
+                    - when:
+                        condition:
+                            equal:
+                                - pipenv
+                                - << parameters.pkg-manager >>
+                        steps:
+                            - restore_cache:
+                                keys:
+                                    - -pypi-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/Pipfile.lock" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+                    - when:
+                        condition:
+                            equal:
+                                - poetry
+                                - << parameters.pkg-manager >>
+                        steps:
+                            - restore_cache:
+                                keys:
+                                    - -pypi-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/poetry.lock" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+                    - when:
+                        condition:
+                            or:
+                                - equal:
+                                    - pip
+                                    - << parameters.pkg-manager >>
+                                - equal:
+                                    - pip-dist
+                                    - << parameters.pkg-manager >>
+                        steps:
+                            - restore_cache:
+                                keys:
+                                    - -pypi-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/<<parameters.pip-dependency-file>>" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+            - when:
+                condition: << parameters.venv-cache >>
+                steps:
+                    - when:
+                        condition:
+                            equal:
+                                - pipenv
+                                - << parameters.pkg-manager >>
+                        steps:
+                            - restore_cache:
+                                keys:
+                                    - -venv-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/Pipfile.lock" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+                    - when:
+                        condition:
+                            equal:
+                                - poetry
+                                - << parameters.pkg-manager >>
+                        steps:
+                            - restore_cache:
+                                keys:
+                                    - -venv-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/poetry.lock" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+            - steps: <<parameters.pre-install-steps>>
+            - when:
+                condition:
+                    equal:
+                        - pipenv
+                        - << parameters.pkg-manager >>
+                steps:
+                    - run:
+                        command: |
+                            pipenv install << parameters.args >>
+                        name: Install dependencies with pipenv using project Pipfile or inline packages
+                        working_directory: << parameters.app-dir >>
+            - when:
+                condition:
+                    equal:
+                        - poetry
+                        - << parameters.pkg-manager >>
+                steps:
+                    - run:
+                        command: |
+                            poetry install --no-ansi << parameters.args >>
+                        name: Install dependencies with poetry using project pyproject.toml
+                        working_directory: << parameters.app-dir >>
+            - when:
+                condition:
+                    and:
+                        - equal:
+                            - pip
+                            - << parameters.pkg-manager >>
+                        - or:
+                            - <<parameters.args>>
+                            - <<parameters.pip-dependency-file>>
+                steps:
+                    - run:
+                        command: |
+                            pip install <<#parameters.pip-dependency-file>>-r <<parameters.pip-dependency-file>><</parameters.pip-dependency-file>> << parameters.args >>
+                        name: Install dependencies with pip using project <<parameters.pip-dependency-file>>
+                        working_directory: <<parameters.app-dir>>
+            - when:
+                condition:
+                    equal:
+                        - pip-dist
+                        - << parameters.pkg-manager >>
+                steps:
+                    - run:
+                        command: |
+                            pip install -e << parameters.path-args >> << parameters.args >>
+                        name: Install dependencies with pip using project setup.py
+                        working_directory: <<parameters.app-dir>>
+            - when:
+                condition: << parameters.venv-cache >>
+                steps:
+                    - when:
+                        condition:
+                            equal:
+                                - pipenv
+                                - << parameters.pkg-manager >>
+                        steps:
+                            - save_cache:
+                                key: -venv-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/Pipfile.lock" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+                                paths:
+                                    - /home/circleci/.local/share/virtualenvs
+                    - when:
+                        condition:
+                            equal:
+                                - poetry
+                                - << parameters.pkg-manager >>
+                        steps:
+                            - save_cache:
+                                key: -venv-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/poetry.lock" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+                                paths:
+                                    - /home/circleci/.cache/pypoetry/virtualenvs
+            - when:
+                condition: << parameters.pypi-cache >>
+                steps:
+                    - when:
+                        condition:
+                            equal:
+                                - pipenv
+                                - << parameters.pkg-manager >>
+                        steps:
+                            - save_cache:
+                                key: -pypi-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/Pipfile.lock" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+                                paths:
+                                    - /home/circleci/.cache/pip
+                                    - /home/circleci/.cache/pipenv
+                    - when:
+                        condition:
+                            equal:
+                                - poetry
+                                - << parameters.pkg-manager >>
+                        steps:
+                            - save_cache:
+                                key: -pypi-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/poetry.lock" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+                                paths:
+                                    - /home/circleci/.cache/pip
+                    - when:
+                        condition:
+                            or:
+                                - equal:
+                                    - pip
+                                    - << parameters.pkg-manager >>
+                                - equal:
+                                    - pip-dist
+                                    - << parameters.pkg-manager >>
+                        steps:
+                            - save_cache:
+                                key: -pypi-<<parameters.cache-version>>-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "<< parameters.app-dir >>/<<parameters.pip-dependency-file>>" }}-<<#parameters.include-python-in-cache-key>>{{ checksum "/home/circleci/.pyenv/version" }}-<</parameters.include-python-in-cache-key>>
+                                paths:
+                                    - /home/circleci/.cache/pip
+                                    - /home/circleci/.pyenv/versions/
+                                    - /home/circleci/.local/lib/
+
+
+jobs:
+    test:
+        description: |
+            Simple drop-in job to setup a python project, run tests and store the test results if possible.
+            If test-tool is pytest, the job assumes the project defines pytest in the dependency file.
+            Otherwise, use the built in unittest module as the test-tool.
+        executor:
+            name: qsharp
+        parameters:
+            app-dir:
+                default: ~/project
+                description: Path to the directory containing your python project. Not needed if dependency file lives in the root.
+                type: string
+            args:
+                default: ""
+                description: Arguments to pass to install command for pipenv and poetry. Override '-r requirements.txt' for pip.
+                type: string
+            cache-version:
+                default: v1
+                description: Change the default cache version if you need to clear the cache for any reason.
+                type: string
+            include-branch-in-cache-key:
+                default: true
+                description: |
+                    If true, this cache bucket will only apply to jobs within the same branch.
+                type: boolean
+            include-python-in-cache-key:
+                default: true
+                description: |
+                    If true, this cache bucket will checksum the pyenv python version with the cache-key
+                type: boolean
+            pip-dependency-file:
+                default: requirements.txt
+                description: Name of the requirements file that needs to be installed with pip. Prepended with `app-dir`. If using pipenv or poetry, this is ignored.
+                type: string
+            pkg-manager:
+                default: pip
+                description: Select the package manager to use. Default is pip
+                enum:
+                    - pip
+                    - pipenv
+                    - poetry
+                    - pip-dist
+                type: enum
+            pypi-cache:
+                default: true
+                description: Keep all versions of pypi and site-package caches for faster rebuilding overall.
+                type: boolean
+            setup:
+                default: []
+                description: Provide any optional steps you would like to run prior to install the python project.
+                type: steps
+            test-tool:
+                default: unittest
+                description: The tool to run the tests with.
+                enum:
+                    - pytest
+                    - unittest
+                type: enum
+            venv-cache:
+                default: true
+                description: Use the lockfile to cache the virtualenv. Not used with pip as pkg-manager.
+                type: boolean
+            version:
+                default: "3.8"
+                description: |
+                    A full version tag must be specified. Example: "3.8"
+                    For a full list of releases, see the following: https://hub.docker.com/r/cimg/python
+                type: string
+        steps:
+            - checkout
+            - steps: << parameters.setup >>
+            - install-packages:
+                app-dir: <<parameters.app-dir>>
+                args: <<parameters.args>>
+                cache-version: <<parameters.cache-version>>
+                include-branch-in-cache-key: <<parameters.include-branch-in-cache-key>>
+                include-python-in-cache-key: <<parameters.include-python-in-cache-key>>
+                pip-dependency-file: <<parameters.pip-dependency-file>>
+                pkg-manager: <<parameters.pkg-manager>>
+                pypi-cache: <<parameters.pypi-cache>>
+                venv-cache: <<parameters.venv-cache>>
+            - when:
+                condition:
+                    equal:
+                        - unittest
+                        - << parameters.test-tool >>
+                steps:
+                    - when:
+                        condition:
+                            or:
+                                - equal:
+                                    - poetry
+                                    - << parameters.pkg-manager >>
+                                - equal:
+                                    - pipenv
+                                    - << parameters.pkg-manager >>
+                        steps:
+                            - run:
+                                command: <<parameters.pkg-manager>> run python -m unittest
+                                name: Run tests with <<parameters.pkg-manager>> run
+                    - when:
+                        condition:
+                            or:
+                                - equal:
+                                    - pip
+                                    - << parameters.pkg-manager >>
+                                - equal:
+                                    - pip-dist
+                                    - << parameters.pkg-manager >>
+                        steps:
+                            - run:
+                                command: |
+                                    export PYTHONPATH=$PWD:$PYTHONPATH
+                                    python -m unittest
+                                name: Run tests with global python env
+                                working_directory: <<parameters.app-dir>>
+            - when:
+                condition:
+                    equal:
+                        - pytest
+                        - << parameters.test-tool >>
+                steps:
+                    - run:
+                        command: mkdir test-report
+                        name: Create test-report directory
+                        working_directory: <<parameters.app-dir>>
+                    - when:
+                        condition:
+                            or:
+                                - equal:
+                                    - poetry
+                                    - << parameters.pkg-manager >>
+                                - equal:
+                                    - pipenv
+                                    - << parameters.pkg-manager >>
+                        steps:
+                            - run:
+                                command: <<parameters.pkg-manager>> run pytest --junit-xml=test-report/report.xml
+                                name: Run tests with <<parameters.pkg-manager>> run
+                                working_directory: <<parameters.app-dir>>
+                    - when:
+                        condition:
+                            or:
+                                - equal:
+                                    - pip
+                                    - << parameters.pkg-manager >>
+                                - equal:
+                                    - pip-dist
+                                    - << parameters.pkg-manager >>
+                        steps:
+                            - run:
+                                command: pytest --junit-xml=test-report/report.xml
+                                name: Run tests with global python env
+                                working_directory: <<parameters.app-dir>>
+                    - store_test_results:
+                        path: <<#parameters.app-dir>><<parameters.app-dir>>/<</parameters.app-dir>>test-report
 
 workflows:
   main:
     jobs:
-      - python/test:
-          args: '-E qcware-quasar -E qiskit -E pyzx'
+      - test:
+          args: '-E qcware-quasar -E qiskit -E pyzx -E braket -E qsharp'
           pkg-manager: poetry
           test-tool: pytest

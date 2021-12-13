@@ -1,4 +1,4 @@
-"""Functions and data structures for marshaling to/from 
+"""Functions and data structures for marshaling to/from
 wire-compatible data structures (python dicts, json,
 etc.)
 """

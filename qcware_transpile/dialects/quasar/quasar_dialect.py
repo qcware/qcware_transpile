@@ -116,7 +116,7 @@ def quasar_names_full() -> PSet[str]:
 @functools.lru_cache(1)
 def quasar_gatenames_full() -> PSet[str]:
     """
-    The names of verything in the Gate namespace
+    The names of everything in the Gate namespace
     """
     result = pset({name for name in dir(Gate) if represents_gate(getattr(Gate, name))})
     return result
@@ -210,11 +210,26 @@ def quasar_gate_from_instruction(i: Instruction) -> Gate:
     return g
 
 
-def ir_to_native(c: Circuit) -> QuasarCircuit:
+def ir_to_native(c: Circuit, fill_unused_edge_qubits=False) -> QuasarCircuit:
     result = QuasarCircuit()
     for instruction in c.instructions:
         g = quasar_gate_from_instruction(instruction)
         result.add_gate(g, tuple(instruction.bit_bindings))
+    # by default, quasar silently ignores unused edge qubits (qubits
+    # "above" or "below" instructions that have no instructions of their
+    # own).  This can cause disparity with toolkits that do not
+    # share this behaviour.  It unfortunately extends the current idea
+    # that qubit indices are integers
+    if fill_unused_edge_qubits == True:
+        # find the unused edge qubits.  We can use quasar's min_qubit and max_qubit
+        # combined with the list of qubits in the Circuit object.
+        # The Circuit's qubits is a set
+        qubits_to_fill = {
+            qb for qb in c.qubits if (qb < result.min_qubit) or (qb > result.max_qubit)
+        }
+        # on each unused edge qubits, add an identity gate
+        for qb in qubits_to_fill:
+            result.I(qb)
     return result
 
 

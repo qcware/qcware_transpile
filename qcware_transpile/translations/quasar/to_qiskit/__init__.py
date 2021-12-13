@@ -18,6 +18,15 @@ import qiskit
 from toolz.functoolz import thread_first
 
 
+# Qiskit: https://github.com/Qiskit/qiskit-terra/blob/master/qiskit/circuit/library/standard_gates/rx.py#L93
+#        cos = math.cos(self.params[0] / 2)
+#        sin = math.sin(self.params[0] / 2)
+#        return numpy.array([[cos, -1j * sin],
+#                            [-1j * sin, cos]], dtype=dtype)
+# vs quasar: https://github.com/qcware/quasar/blob/master/quasar/circuit.py#L226
+#        c = np.cos(theta)
+#        s = np.sin(theta)
+# so we must double angles from quasar to braket
 def double_angle(theta):
     return 2 * theta
 
@@ -44,6 +53,7 @@ def translation_set():
         ("Rx", "rx", double_angle),
         ("Ry", "ry", double_angle),
         ("Rz", "rz", double_angle),
+        ("XX_ion", "rxx", double_angle),
     }
 
     quasar_d = quasar_dialect.dialect()
@@ -54,13 +64,16 @@ def translation_set():
             replacement=Circuit.from_tuples(
                 qiskit_d,
                 [
-                    ("cx", {}, [1, 0]),
-                    (
-                        "cry",
-                        {"theta": lambda pm: double_angle(pm[(0, "theta")])},
-                        [0, 1],
-                    ),
-                    ("cx", {}, [1, 0]),
+                    ("h", {}, [0]),
+                    ("h", {}, [1]),
+                    ("cz", {}, [0, 1]),
+                    # Note!  We don't double_angle there because the angle
+                    # to give to ry is actually theta/2
+                    ("ry", {"theta": lambda pm: pm[(0, "theta")]}, [0]),
+                    ("ry", {"theta": lambda pm: -pm[(0, "theta")]}, [1]),
+                    ("cz", {}, [0, 1]),
+                    ("h", {}, [0]),
+                    ("h", {}, [1]),
                 ],
             ),
         )
@@ -91,7 +104,8 @@ def audit(c: quasar.Circuit):
     if len(untranslatable) > 0:
         result["untranslatable_instructions"] = untranslatable
     if not quasar.Circuit.test_equivalence(c, c.center()):
-        result["circuit_not_centered"] = True
+        # type notation below since TypedDict was fresh in 3.8
+        result["circuit_not_centered"] = True  # type: ignore
     return result
 
 

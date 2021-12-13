@@ -9,4 +9,5 @@ from .qiskit_dialect import (
     ir_to_native,
     native_circuits_are_equivalent,
     audit,
+    normalized_instructions,
 )

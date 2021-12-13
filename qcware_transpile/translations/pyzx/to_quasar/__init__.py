@@ -18,6 +18,7 @@ from typing import Dict
 from toolz.functoolz import thread_first
 from fractions import Fraction
 from numpy import pi
+from icontract.errors import ViolationError
 
 
 def from_phase_angle(phase: Fraction) -> float:

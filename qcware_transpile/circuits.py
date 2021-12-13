@@ -7,11 +7,9 @@ from pyrsistent import pmap, pset, pvector
 from pyrsistent.typing import PMap, PSet, PVector
 
 from .gates import Dialect
-from .helpers import reverse_map
 from .instructions import (
     Instruction,
     instruction_bit_bindings_map,
-    instruction_to_dict,
     instruction_is_valid_executable,
     instruction_is_valid_replacement,
     instruction_parameters_are_fully_bound,
@@ -24,6 +22,10 @@ class Circuit(object):
     dialect_name = attr.ib(type=str)
     instructions = attr.ib(type=PVector[Instruction], converter=pvector)
     qubits = attr.ib(type=PSet[Any], converter=pset)
+    # 'metadata' contains extra information not necessarily
+    # understood by translations, such as "classical bit" arguments,
+    # etc. which are not normally "part" of a quantum circuit.
+    metadata = attr.ib(type=PMap[str, Any], default=pmap(), converter=pmap)
 
     @classmethod
     def from_tuples(
@@ -55,7 +57,7 @@ class Circuit(object):
     ):
         if qubits is None:
             new_qubits: PSet = pset(
-                set().union(*[set(i.bit_bindings) for i in instructions])
+                set.union(*[set(i.bit_bindings) for i in instructions])
             )  # type: ignore
         else:
             new_qubits = pset(qubits)
@@ -76,17 +78,6 @@ class Circuit(object):
 def circuit_conforms_to_dialect(c: Circuit, d: Dialect) -> bool:
     gatedefs_in_circuit = {i.gate_def for i in c.instructions}
     return c.dialect_name == d.name and gatedefs_in_circuit.issubset(d.gate_defs)
-
-
-def circuit_to_dict(c: Circuit) -> dict:
-    """
-    Transforms the circuit to a regular dict suitable for JSON
-    """
-    return dict(
-        dialect_name=c.dialect_name,
-        instructions=[instruction_to_dict(i) for i in c.instructions],
-        qubits=list(c.qubits),
-    )
 
 
 def circuit_bit_bindings(circuit: Circuit) -> PMap[Tuple[int, int], Set[int]]:
@@ -194,3 +185,30 @@ def circuit_bit_targets(c: Circuit) -> PVector[int]:
     return pvector(
         itertools.chain.from_iterable([i.bit_bindings for i in c.instructions])
     )  # type: ignore
+
+
+def reverse_circuit(c: Circuit) -> Circuit:
+    """
+    Reverse the bit order in the given circuit for the
+    purpose of converting between little-endian and
+    big-endian representation.
+    """
+    qubits = sorted(c.qubits)
+    new_instructions = []
+    for instruction in c.instructions:
+        new_bit_bindings = []
+        for bit in instruction.bit_bindings:
+            x = qubits[len(qubits) - qubits.index(bit) - 1]
+            new_bit_bindings.append(x)
+        new_instructions.append(
+            Instruction(
+                gate_def=instruction.gate_def,
+                parameter_bindings=instruction.parameter_bindings,  # type:ignore
+                bit_bindings=new_bit_bindings,
+            )
+        )
+    return Circuit(
+        dialect_name=c.dialect_name,
+        instructions=new_instructions,
+        qubits=qubits,  # type:ignore
+    )
