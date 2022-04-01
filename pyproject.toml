@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qcware_transpile"
-version = "0.1.1-alpha.19"
+version = "0.1.1-alpha.20"
 description = "A quantum circuit transpilation framework"
 authors = ["Vic Putz <vic.putz@qcware.com>"]
 include = ["qcware_transpile/py.typed"]
@@ -14,11 +14,11 @@ python = "^3.8"
 pyrsistent = "^0.18.0"
 attrs = "^21.2.0"
 qcware-quasar = { version = "^1.0.6", optional=true }
-qiskit-aer = { version = "^0.9.0", optional=true }
+qiskit-aer = { version = "^0.10.0", optional=true }
 pyzx = {version = "^0.6.4", optional = true}
 toolz = "^0.11.2"
 icontract = "^2.6.0"
-amazon-braket-sdk = {version = "^1.9.0", optional = true}
+amazon-braket-sdk = {version = ">=1.15.0", optional = true}
 qsharp = {version = "^0.15.2102", optional = true}
 parse = "^1.19.0"
 
@@ -36,8 +36,7 @@ sphinx-rtd-theme = "^0.5.1"
 snakeviz = "^2.1.0"
 pipdeptree = "^2.0.0"
 python-lsp-black = "^1.0.1"
-# pydantic pinned at 1.7.3 to avoid hypothesis tooling errors; not used directly
-pydantic = "1.7.3"
+pydantic = "^1.8.2"
 pytest-xdist = "^2.5.0"
 pre-commit = "^2.16.0"
 pyls-memestra = "^0.0.15"

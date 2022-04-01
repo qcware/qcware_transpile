@@ -1,14 +1,19 @@
-import qiskit  # type: ignore
-from qcware_transpile.gates import GateDef, Dialect
-from qcware_transpile.circuits import Circuit
-from qcware_transpile.instructions import Instruction
-from qcware_transpile.helpers import map_seq_to_seq_unique
-from pyrsistent import pset, pmap, pvector
-from pyrsistent.typing import PSet, PMap
-from typing import Tuple, Any, Set, Generator, List, Dict, Callable
-from inspect import isclass, signature
+import sys
+import traceback
+import warnings
 from functools import lru_cache
+from inspect import isclass, signature
+from typing import Any, Callable, Dict, Generator, List, Set, Tuple
+
+import qiskit  # type: ignore
 from icontract import require
+from pyrsistent import pmap, pset, pvector
+from pyrsistent.typing import PMap, PSet
+
+from qcware_transpile.circuits import Circuit
+from qcware_transpile.gates import Dialect, GateDef
+from qcware_transpile.helpers import map_seq_to_seq_unique
+from qcware_transpile.instructions import Instruction
 
 # the following from
 # https://stackoverflow.com/questions/22373927/get-traceback-of-warnings
@@ -20,10 +25,6 @@ from icontract import require
 # no longer use it, so that warning isn't as useful as it could be).
 # The following code is to be used selectively to trace where those
 # warnings are coming from and TEMPORARILY turn them off
-
-import traceback
-import warnings
-import sys
 
 
 def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
@@ -47,7 +48,9 @@ def qiskit_gatethings() -> PSet[Any]:
         {
             x
             for x in possible_things
-            if isclass(x) and issubclass(x, qiskit.circuit.Instruction)
+            if isclass(x)
+            and issubclass(x, qiskit.circuit.Instruction)
+            and (not x.__name__.endswith("StatePreparation"))
         }
     )
 

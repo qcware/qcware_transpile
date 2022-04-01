@@ -34,7 +34,7 @@ def qiskit_probability_vector(circuit: qiskit.QuantumCircuit):
     c.save_state("final_statevector")
     result_data = qiskit.execute(c, backend).result().data()
     sv = result_data["final_statevector"]
-    return abs(sv)
+    return abs(sv.data)
 
 
 def test_instructions_after_measurement():

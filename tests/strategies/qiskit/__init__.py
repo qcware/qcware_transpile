@@ -1,5 +1,6 @@
 import math
 from hypothesis.strategies import lists, integers, composite, sampled_from, floats
+from hypothesis import assume
 import qiskit  # type: ignore
 from qcware_transpile.dialects.qiskit.qiskit_dialect import dialect, name_to_class
 
@@ -14,6 +15,14 @@ def gates(draw, gate_list=sorted(dialect().gate_defs)):
         value = draw(angles)
         kwargs[p] = value
     try:
+        # to avoid "the num_qubits parameter to StatePreparation should only be used when params
+        # is an integer" error
+        if (
+            "num_qubits" in kwargs
+            and "params" in kwargs
+            and not isinstance(kwargs["params"], int)
+        ):
+            del kwargs["num_qubits"]
         result = gate_class(**kwargs)
     except Exception as e:
         print(
