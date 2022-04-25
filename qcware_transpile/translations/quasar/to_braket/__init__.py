@@ -104,9 +104,8 @@ def translation_set(allowed_instructions: Optional[PSet[str]] = None) -> Transla
                 braket_d,
                 [
                     ("H", {}, [0]),
-                    ("H", {}, [1]),
-                    # sub for CZ
-                    ("H", {}, [1]),
+                    # we sub H-CNOT-H for CZ, but that
+                    # creates double-H gates so we remove the immediate successive
                     ("CNot", {}, [0, 1]),
                     ("H", {}, [1]),
                     # Note!  We don't double_angle there because the angle
@@ -116,9 +115,7 @@ def translation_set(allowed_instructions: Optional[PSet[str]] = None) -> Transla
                     # sub for CZ
                     ("H", {}, [1]),
                     ("CNot", {}, [0, 1]),
-                    ("H", {}, [1]),
                     ("H", {}, [0]),
-                    ("H", {}, [1]),
                 ],
             ),
         ),
